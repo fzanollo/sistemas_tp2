@@ -36,7 +36,6 @@ void t_aula_ingresar(t_aula *un_aula, t_persona *alumno)
 void t_aula_liberar(t_aula *un_aula, t_persona *alumno)
 {
 	un_aula->cantidad_de_personas--;
-	un_aula->posiciones[alumno->posicion_fila][alumno->posicion_columna]--;
 }
 
 static void terminar_servidor_de_alumno(int socket_fd, t_aula *aula, t_persona *alumno) {
@@ -61,7 +60,7 @@ t_comando intentar_moverse(t_aula *el_aula, t_persona *alumno, t_direccion dir)
 	
 	
 	bool entre_limites = (fila >= 0) && (columna >= 0) &&
-	     (fila < ALTO_AULA) && (columna < ANCHO_AULA);
+	     (fila < ANCHO_AULA) && (columna < ALTO_AULA);
 	     
 	bool pudo_moverse = alumno->salio ||
 	    (entre_limites && el_aula->posiciones[fila][columna] < MAXIMO_POR_POSICION);
