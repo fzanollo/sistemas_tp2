@@ -48,7 +48,7 @@ typedef struct {
 
 void t_persona_inicializar(t_persona *persona);
 
-int  enviar_nombre_y_posicion(int socketfd, t_persona *persona);
+int enviar_nombre_y_posicion(int socketfd, t_persona *persona);
 int recibir_nombre_y_posicion(int socketfd, t_persona *persona);
 
 int enviar_direccion(int socketfd, t_direccion direccion);
