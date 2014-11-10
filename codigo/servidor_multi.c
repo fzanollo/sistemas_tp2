@@ -217,14 +217,15 @@ void * test_pthreads(void * params){
 
 	pthread_mutex_lock(&mutex_aula);
 	while(el_aula->rescatistas_disponibles == 0)
-		pthread_cond_wait(&cond_hay_rescatistas);
-	el_aula->rescatistas_disponibles--;
+		pthread_cond_wait(&cond_hay_rescatistas, &mutex_aula);
+	el_aula->rescatistas_disponibles--; 
 	pthread_mutex_unlock(&mutex_aula);
 
 	colocar_mascara(el_aula, &alumno);
 
 	pthread_mutex_lock(&mutex_aula);
 	el_aula->rescatistas_disponibles++;
+	pthread_cond_signal(&cond_hay_rescatistas);
 	pthread_mutex_unlock(&mutex_aula);
 
 	pthread_mutex_lock(&mutex_aula);
