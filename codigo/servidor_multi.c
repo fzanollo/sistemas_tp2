@@ -21,6 +21,8 @@ typedef struct {
 
 /// Definicion de mutexes
 pthread_mutex_t mutex_aula;
+pthread_mutex_t mutex_rescatistas;
+pthread_cond_t cond_hay_rescatistas;
 // crear mutex pthread mutex init(mutex, attr)
 // destruir mutex pthread mutex destroy(mutex)
 
@@ -101,10 +103,8 @@ t_comando intentar_moverse(t_aula *el_aula, t_persona *alumno, t_direccion dir)
 
 void colocar_mascara(t_aula *el_aula, t_persona *alumno)
 {
-	printf("Esperando rescatista. Ya casi %s!\n", alumno->nombre);
-	//LOCK HAY_RESCATISTAS(prolly variable de condicion)	
+	printf("Esperando rescatista. Ya casi %s!\n", alumno->nombre);	
 	alumno->tiene_mascara = true;
-	//UNLOCK HAY_RESCATISTAS
 }
 
 
@@ -215,11 +215,21 @@ void * test_pthreads(void * params){
 			break;
 	}
 
+	pthread_mutex_lock(&mutex_aula);
+	while(el_aula->rescatistas_disponibles == 0)
+		pthread_cond_wait(&cond_hay_rescatistas);
+	el_aula->rescatistas_disponibles--;
+	pthread_mutex_unlock(&mutex_aula);
+
 	colocar_mascara(el_aula, &alumno);
 
-	//LOCK AULA
+	pthread_mutex_lock(&mutex_aula);
+	el_aula->rescatistas_disponibles++;
+	pthread_mutex_unlock(&mutex_aula);
+
+	pthread_mutex_lock(&mutex_aula);
 	t_aula_liberar(el_aula, &alumno);
-	//UNLOCK AULA
+	pthread_mutex_unlock(&mutex_aula);
 
 	enviar_respuesta(socket_fd, LIBRE);
 	
@@ -235,8 +245,6 @@ int main(void)
 	//signal(SIGUSR1, signal_terminar);
 	int socketfd_cliente, socket_servidor, socket_size;
 	struct sockaddr_in local, remoto;
-
-	
 
 	/* Crear un socket de tipo INET con TCP (SOCK_STREAM). */
 	if ((socket_servidor = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
@@ -268,6 +276,11 @@ int main(void)
 
 	// Inicializacion de mutexes
 	pthread_mutex_init(&mutex_aula, NULL);
+	pthread_mutex_init(&mutex_rescatistas, NULL);
+
+	// Variables de condicion
+	pthread_cond_init(&cond_hay_rescatistas, NULL);
+	
 
 	for(;;){		
 		if (-1 == (socketfd_cliente = 
@@ -291,8 +304,6 @@ int main(void)
 			//atendedor_de_alumno(socketfd_cliente, &el_aula);
 		}
 	}
-
-
 	return 0;
 }
 
