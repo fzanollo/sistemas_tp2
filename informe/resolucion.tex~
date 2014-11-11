@@ -1,0 +1,24 @@
+%Justificar en todos los casos todas las decisiones tomadas.
+\subsection{Servidor multi} %buscar un mejor título
+%Implementación realizada: indicando los archivos creados y/o modificados. Dificultades encontradas
+servidor_multi y un algorithm explicando el atendedor de boludos eee digo alumnos 
+
+%Qué tipos de datos usamos para sincronizar los procesos. Por qué
+\subsection{Variables compartidas y privadas}
+compartidas: t_aula el_aula
+
+privadas: t_persona alumno
+
+Caso especial: t_parametros 
+typedef struct {
+	//Cosas del problema			explicar que es c/u de sus miembros,
+	int socket_fd;				por qué es necesario este tipo de datos y
+	t_aula* el_aula;			por qué usamos malloc cuando lo creamos
+	//Cosas del pthread
+	int tid;
+} t_parametros;
+\subsection{Mutexes}
+pthread_mutex_t mutex_aula;
+pthread_mutex_t mutex_rescatistas;
+pthread_cond_t cond_hay_rescatistas;
+
