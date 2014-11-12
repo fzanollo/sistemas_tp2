@@ -61,11 +61,10 @@ Integrantes:
 \section{Introducción}
 \input{introduccion.tex}
 
-\section{Resolución}
-\input{resolucion.tex}
-
-\section{Escalamiento}
-\input{escalamiento.tex}
+\section{Implementación}
+%implementación realizada: indicando los archivos creados y/o modificados
+%dificultades encontradas
+%Justificar en todos los casos todas las decisiones tomadas.
 
 %\bibliographystyle{plain}
 %\bibliography{biblio}

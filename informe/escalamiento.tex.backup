@@ -1,0 +1,23 @@
+En caso de un aumento drástico en la cantidad de alumnos el problema a tener en cuenta es la memoria.\\
+
+Un pthread es creado por cada alumno (o cliente) que se conecta al servidor. Esto implica un nuevo stack, 
+el tamaño del stack es variable. Normalmente (y lo vamos a asumir para este caso) es de 4KB.\\
+
+Entonces para un servidor con 10 clientes (10 pthreads) se necesita\footnote{En realidad si la memoria no alcanza se podría usar $swapping$ pero esto generaría otro problema: $thrashing$} 
+una memoria de $10\ *\ 4KB\ =$ 40KB.\\
+Y para un servidor con 1000 clientes se necesita una memoria de 4MB.\\
+
+La solución mediante hardware a este problema es agregar más memoria principal al servidor.
+
+Soluciones mediante software:\\
+\begin{description}
+ \item Sin pthreads: Se podría implementar un servidor capáz de atender a distintos clientes en \"simultaneo\".\\
+ Con un mecanísmo de scheduling tal y como se simula paralelismo de procesos contando con solo un CPU.
+ El problema de esta solución es que puede tardar mucho en atender a los clientes (depende estríctamente de la cantidad y el mecanísmo usado).
+ Incluso podría haber $starvation$.
+ 
+ \item Con pthreads: En vez de tener un pthread por cada cliente se pueden compartir. Es un poco mezclar la idea anterior con pthreads.\\
+ Si se crea un pthread que atiende a X cantidad de clientes entonces la cantidad total de memoria requerida para N clientes es de $\dfrac{N}{X}\ *\ 4KB$.
+ Se debe elegir un X adecuado ya que si es muy chico se consume más memoria pero los clientes se atienden más rápido y viceversa.\\
+ Por ejemplo para X = 10 la cantidad total de memoria requerida para 1000 clientes es de $\dfrac{1000}{10}\ *\ 4KB$ = 400KB. Se reduce en un 90\%.
+\end{description}
