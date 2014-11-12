@@ -15,13 +15,23 @@ typedef struct {
 	//Cosas del problema
 	int socket_fd;
 	t_aula* el_aula;
+	t_salida* salida;
 	//Cosas del pthread
 	int tid;
 } t_parametros;
 
+typedef struct
+{
+	int cant_personas_pasillo;
+	int cant_personas_grupo;
+
+} t_salidas;
+
 /// Definicion de mutexes
+
 pthread_mutex_t mutex_aula;
 pthread_mutex_t mutex_rescatistas;
+pthread_mutex_t mutex_salida;
 pthread_cond_t cond_hay_rescatistas;
 // crear mutex pthread mutex init(mutex, attr)
 // destruir mutex pthread mutex destroy(mutex)
@@ -171,6 +181,7 @@ void * test_pthreads(void * params){
 	int socket_fd = parametros->socket_fd;
 
 	t_aula * el_aula = parametros->el_aula;
+	t_salida * salida = parametros->salida;
 
 	t_persona alumno;
 	t_persona_inicializar(&alumno);
@@ -215,9 +226,12 @@ void * test_pthreads(void * params){
 			break;
 	}
 
+	//Salio, hay que ver que haya rescatistas para ponerle la mascara
 	pthread_mutex_lock(&mutex_aula);
 	while(el_aula->rescatistas_disponibles == 0)
+		//Debe esperarlos
 		pthread_cond_wait(&cond_hay_rescatistas, &mutex_aula);
+	//Hay uno disponible, se lo asigno
 	el_aula->rescatistas_disponibles--; 
 	pthread_mutex_unlock(&mutex_aula);
 
@@ -228,10 +242,25 @@ void * test_pthreads(void * params){
 	pthread_cond_signal(&cond_hay_rescatistas);
 	pthread_mutex_unlock(&mutex_aula);
 
+
 	pthread_mutex_lock(&mutex_aula);
+	pthread_mutex_lock(&mutex_pasillo);
+
 	t_aula_liberar(el_aula, &alumno);
+	salidas->cant_personas_pasillo++;
+
+	pthread_mutex_unlock(&mutex_pasillo);
 	pthread_mutex_unlock(&mutex_aula);
 
+	while()
+
+	pthread_mutex_lock(&salida);
+	while(salida->cant_personas < 5 && juego->cant_personas > 0)
+		pthread_cond_wait(&esperemos, &salida);
+	salida->cant_personas--;
+	pthread_cond_signal(&esperemos);
+
+	//Hay 5, empezemos a salir o
 	enviar_respuesta(socket_fd, LIBRE);
 	
 	printf("Listo, %s es libre!\n", alumno.nombre);
@@ -268,6 +297,8 @@ int main(void)
 	
 	t_aula el_aula;
 	t_aula_iniciar_vacia(&el_aula);
+	t_salida salida;
+	salida->cant_personas = 0;
 	
 	/// Aceptar conexiones entrantes.
 	socket_size = sizeof(remoto);
@@ -278,6 +309,7 @@ int main(void)
 	// Inicializacion de mutexes
 	pthread_mutex_init(&mutex_aula, NULL);
 	pthread_mutex_init(&mutex_rescatistas, NULL);
+	pthread_mutex_init(&mutex_salida, NULL);
 
 	// Variables de condicion
 	pthread_cond_init(&cond_hay_rescatistas, NULL);
@@ -298,7 +330,8 @@ int main(void)
 			
 			parametros->socket_fd = socketfd_cliente;
 			parametros->el_aula = &el_aula;
-			parametros->tid = cant_clientes; 
+			parametros->tid = cant_clientes;
+			parametros->salida = &salida; 
 			pthread_create(&tid, NULL, test_pthreads, (void *)parametros);
 			//pthread_join(tid, NULL);
 
