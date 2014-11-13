@@ -7,8 +7,6 @@ from paises import *
 
 HOST = 'localhost'
 PORT = 5555
-CLIENTES = 1
-#CLIENTES = 22
 
 class TCPFramer:
 	def __init__(self, socket):
@@ -79,27 +77,17 @@ class Cliente:
 		print(self.name, "salio")
 		self.sock.close()
  
-clientes = []
-for i in range(CLIENTES):
-	 c = Cliente(paises[i], (5,5))
-	 clientes.append(c)
-	 
-#for cliente in clientes:
-#	cliente.salir()
 
-i = 0
-while len(clientes) > 0:
-	if clientes[i].avanzarUnPaso():
-		clientes[i].esperarMascara()
-		clientes.pop(i)
-	else:
-		i += 1
-		
-	if i >= len(clientes):
-		i = 0
-		
-		
-sys.exit(0)
+def main():
+	nombre = sys.argv[1]
+	pos_fila = int(sys.argv[2])
+	pos_columna = int(sys.argv[3])
+	c = Cliente(nombre, (pos_fila, pos_columna))
+	while(not c.avanzarUnPaso()):
+		pass
+	c.esperarMascara()	
+	sys.exit(0)
 
-
+if __name__ == "__main__":
+	main()
 
