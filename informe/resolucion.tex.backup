@@ -25,9 +25,9 @@ Contiene:
  \item Variable compartida el\_aula.
 \end{itemize}
 
-Es necesario tener una estructura para pasar los parámetros porque la implementación de pthreads sólo admite el pasaje de un parámetro y debe
+Es necesario tener una estructura para pasar los parámetros porque la implementación de pthreads sólo admite el pasaje un parámetro y debe
 ser una estructura.\\
-Al crearlo utilizamos malloc para alojarlo en memoria, de no hacerlo de esta forma la variable \textquoteleft muere\textquoteright al final del $scope$ y
+Al crearlo utilizamos malloc para alojarlo en memoria, de no hacerlo de esta forma la variable muere al final del $scope$ y
 el pthread estaría accediendo a posiciones inválidas (contienen basura).\\
 
 \subsection{Mutexes}
