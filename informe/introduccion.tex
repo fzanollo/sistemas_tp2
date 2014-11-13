@@ -1,4 +1,30 @@
-Pthreads
-Semáforos y variables de condición en pthreads
+Para hacer posible la portabilidad de programas con threads, la IEEE definió un estandar, la librería que define estos threads es llamada \textbf{Pthreads}.
+La mayoría de los sistemas UNIX la soportan. El estandar define más de 60 funciones.\\
+Cada pthread tiene las siguientes propiedades:
+\begin{itemize}
+ \item Identificador.
+ \item Set de registros (incluído el $program\ counter$).
+ \item Set de atributos (que son guardados en una estructura e incluyen el tamaño del $stack$ entre otros).\\
+\end{itemize}
 
-Desc. breve problema y cómo lo pensamos, quizás un algortithm con el pseudocódigo de la idea sea más legible
+Pthreads también proporciona un número de funciones que pueden ser usadas para sincronizar threads. El mecanísmo más básico usa una variable
+de exclusión mutua o \textbf{mutex}, que puede ser bloqueada o desbloqueada para proteger una sección crítica.\\
+Si un thread quiere entrar en una sección crítica primero trata de bloquear el mutex asociado a esa sección. Si estaba desbloqueado entra y 
+el mutex es bloqueado automáticamente, previniendo así que otros threads entren. Si ya estaba bloqueado, el thread se bloquea hasta que el
+mutex sea liberado.\\ 
+Si múltiples threads están esperando el mismo mutex, cuando éste es desbloqueado, sólo le es permitido continuar a uno de ellos.
+Estos bloqueos no son mandatorios. Queda a cargo del programador asegurar que los threads los utilizan correctamente.\\
+
+Además de los mutex. Pthreads ofrece un segundo mecanísmo de sincronización: \textbf{variables de condición}. Éstas permiten a los threads 
+bloquearse debido al incumplimiento de alguna condición. Casi siempre estos mecanísmos son utilizados conjuntamente.
+
+%TODO Desc. breve problema y cómo lo pensamos, quizás un algortithm con el pseudocódigo de la idea sea más legible
+
+\begin{algorithm}
+  \caption{Round-Robin}
+  \begin{algorithmic}[1]
+    \Procedure{load}{$pid$}
+    \State{encolo la nueva tarea en readyTasks}
+    \EndProcedure
+ \end{algorithmic}
+\end{algorithm}

@@ -1,24 +1,41 @@
 %Justificar en todos los casos todas las decisiones tomadas.
 %Implementación realizada: indicando los archivos creados y/o modificados. Dificultades encontradas
 %Qué tipos de datos usamos para sincronizar los procesos. Por qué
-\subsection{Variables compartidas y privadas}
-%compartidas: t_aula el_aula
+\subsection{Variables utilizadas}
+\textbf{Compartidas:} t\_aula el\_aula. Es una estructura que almacena los datos de una reserva.\\
+Contiene: 
+\begin{itemize}
+ \item Una matríz de enteros donde cada posición equivale a $1m^{2}$ del aula.
+ \item Cantidad de personas dentro del aula.
+ \item Cantidad de rescatístas.
+\end{itemize}
 
-%privadas: t_persona alumno
+\textbf{Privadas:} t\_persona alumno. 
+Contiene:
+\begin{itemize}
+ \item Nombre
+ \item Posición en la que se encuentra (fila y columna)
+ \item Un booleano indicando si salió y otro si tiene la máscara.
+\end{itemize}
 
-%Caso especial: t_parametros 
-typedef struct {
-	//Cosas del problema			explicar que es c/u de sus miembros,
-%	int socket_fd;				por qué es necesario este tipo de datos y
-%	t_aula* el_aula;			por qué usamos malloc cuando lo creamos
-	//Cosas del pthread
-	int tid;
-%} t_parametros;
+\textbf{Caso especial:} t\_parametros. Es una estructura que contiene lo siguiente:
+\begin{itemize}
+ \item Identificador del socket que utilizará el pthread para comunicarse con el cliente.
+ Este socket es único para cada pthread.
+ \item Variable compartida el\_aula.
+\end{itemize}
+
+Es necesario tener una estructura para pasar los parámetros porque la implementación de pthreads sólo admite el pasaje de un parámetro y debe
+ser una estructura.\\
+Al crearlo utilizamos malloc para alojarlo en memoria, de no hacerlo de esta forma la variable \textquoteleft muere\textquoteright al final del $scope$ y
+el pthread estaría accediendo a posiciones inválidas (contienen basura).\\
 
 \subsection{Mutexes}
 %pthread_mutex_t mutex_aula;			explicar cuándo se usa c/u y por qué no hay deadlock (básicamente no hay hold & wait)
 %pthread_mutex_t mutex_rescatistas;
 %pthread_cond_t cond_hay_rescatistas;
 
-\subsection{Código} %buscar un mejor título (implementación?)
-%servidor_multi y un algorithm explicando el atendedor de boludos eee digo alumnos 
+\subsection{Deadlock}
+
+\subsection{Implementación}
+%servidor_multi y un algorithm explicando el atendedor de boludos eee digo alumnos

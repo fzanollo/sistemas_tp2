@@ -14,8 +14,8 @@ Esto conlleva un costo muy alto y puede llegar a volverse inmanejable.\\
 
 Soluciones mediante software:
 \begin{description}
- \item \textbf{Sin pthreads:} Se podría implementar un servidor capáz de atender a distintos clientes en 'simultaneo'.\\ %TODO arreglar las comillas
- Con un mecanísmo de scheduling tal y como se simula paralelismo de procesos contando con solo un CPU.
+ \item \textbf{Sin pthreads:} Se podría implementar un servidor capáz de atender a distintos clientes en \textquoteleft simultaneo\textquoteright.\\
+ Con un mecanísmo de scheduling tal y como se simula paralelismo de procesos contando con solo un CPU.  
  El problema de esta solución es que puede tardar mucho en atender a los clientes (depende estríctamente de la cantidad y el mecanísmo usado).
  Incluso podría haber $starvation$.
  
