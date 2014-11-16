@@ -3,7 +3,7 @@
 import socket
 import sys
 import time
-from paises import *
+from pokemon import *
 
 HOST = 'localhost'
 PORT = 5555
@@ -44,7 +44,7 @@ class Cliente:
 
 	def esperarMascara(self):
 		response = self.framer.receive()
-		print("Respuesta: <"+ response+ ">")	
+		print("[" + self.nombre + "] Respuesta: <"+ response+ ">")	
 
 		
 	def avanzarUnPaso(self):
@@ -59,7 +59,7 @@ class Cliente:
 		self.framer.send(direc)
 		response = self.framer.receive()
 		time.sleep(0.5)
-		print("Respuesta: <"+ response+ ">")
+		print("[" + self.nombre + "] Respuesta: <"+ response+ ">")
 		if response == "OK":
 			self.posicion = (self.posicion[0] + next[0], self.posicion[1] + next[1])
 		else:

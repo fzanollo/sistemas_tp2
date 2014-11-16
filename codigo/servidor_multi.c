@@ -105,7 +105,7 @@ t_comando intentar_moverse(t_aula *el_aula, t_persona *alumno, t_direccion dir)
 	
 	
 	bool entre_limites = (fila >= 0) && (columna >= 0) &&
-	     (fila < ANCHO_AULA) && (columna < ALTO_AULA);
+	     (fila < ALTO_AULA) && (columna < ANCHO_AULA);
 	     
 	bool pudo_moverse = alumno->salio ||
 	    (entre_limites && el_aula->posiciones[fila][columna] < MAXIMO_POR_POSICION);

@@ -1,9 +1,9 @@
 import subprocess as sp
-from paises import paises
+from pokemon import pokemon
 
-for i in xrange(10):
+for i in xrange(3):
 	pos_fila = i*23 % 10
 	pos_columna = i*17 % 10
-	sp.Popen(["python","pycliente.py", paises[i], str(pos_fila), str(pos_columna)])
+	sp.Popen(["python","pycliente.py", pokemon[i], str(pos_fila), str(pos_columna)])
 
 print "Corri todo"
