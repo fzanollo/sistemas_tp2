@@ -247,11 +247,15 @@ void * atendedor_de_alumno(void * params){
 
 	pthread_mutex_lock(&mutex_grupo);
 	//Espera a que haya espacio en el grupo de evacuacion
-	while(salidas->cant_personas_grupo >= 5)
+	while(salidas->cant_personas_grupo >= 5){
+		printf("%s está esperando a que evacúe el grupo\n", alumno.nombre);	
 		pthread_cond_wait(&cond_grupo_lleno, &mutex_grupo);
+	}
 	//Hay espacio para uno más
 	pthread_mutex_lock(&mutex_pasillo);
 	salidas->cant_personas_pasillo--;
+	printf("%s sale del pasillo donde quedan %d personas\n", alumno.nombre, salidas->cant_personas_pasillo);
+	printf("%s se une al grupo de %d personas a ser evacuadas\n", alumno.nombre, salidas->cant_personas_grupo);
 	salidas->cant_personas_grupo++;
 	pthread_mutex_unlock(&mutex_pasillo);
 
@@ -259,20 +263,25 @@ void * atendedor_de_alumno(void * params){
 	if(salidas->cant_personas_grupo == 5 || 
 		(salidas->cant_personas_pasillo == 0 && el_aula->cantidad_de_personas == 0)){
 		//Salgamos todos!
+		printf("%s avisa al grupo de %d personas que ya pueden a ser evacuados\n", alumno.nombre, salidas->cant_personas_grupo);
 		pthread_cond_broadcast(&cond_estan_evacuando);
 	}
 	else{
 		//Todavia no podemos salir
+		printf("%s espera junto al grupo de %d personas\n", alumno.nombre, salidas->cant_personas_grupo);
 		pthread_cond_wait(&cond_estan_evacuando, &mutex_grupo);
 	}
 	salidas->cant_personas_grupo--;
+	printf("%s fue evacuado\n", alumno.nombre);
 	//Espero a que termine de salir todo el grupo
 	if(salidas->cant_personas_grupo > 0){
+		printf("Aún quedan %d personas por ser evacuadas\n", salidas->cant_personas_grupo);
 		pthread_cond_wait(&cond_salimos_todos, &mutex_grupo);
 	}
 	else{
 		//Ya salimos todos, puede volver a ingresar gente al grupo
-		pthread_cond_signal(&cond_salimos_todos);
+		printf("Ya salimos todos, pueden volver a evacuar gente\n");
+		pthread_cond_broadcast(&cond_salimos_todos);
 		pthread_cond_broadcast(&cond_grupo_lleno);
 	}
 
