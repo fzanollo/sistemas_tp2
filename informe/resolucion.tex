@@ -2,40 +2,97 @@
 %Implementación realizada: indicando los archivos creados y/o modificados. Dificultades encontradas
 %Qué tipos de datos usamos para sincronizar los procesos. Por qué
 \subsection{Variables utilizadas}
-\textbf{Compartidas:} t\_aula el\_aula. Es una estructura que almacena los datos de una reserva.\\
-Contiene: 
+\subsubsection{Compartidas}
+\textbf{t\_aula el\_aula.}
+Estructura que contiene: 
 \begin{itemize}
- \item Una matríz de enteros donde cada posición equivale a $1m^{2}$ del aula.
+ \item Una matríz de enteros donde cada posición equivale a $1\ m^{2}$ del aula.
  \item Cantidad de personas dentro del aula.
  \item Cantidad de rescatístas.
 \end{itemize}
 
-\textbf{Privadas:} t\_persona alumno. 
-Contiene:
+\subsubsection{Privadas}
+\textbf{t\_persona alumno.}
+Estructura que contiene: 
 \begin{itemize}
  \item Nombre
  \item Posición en la que se encuentra (fila y columna)
  \item Un booleano indicando si salió y otro si tiene la máscara.
 \end{itemize}
 
-\textbf{Caso especial:} t\_parametros. Es una estructura que contiene lo siguiente:
+\smallskip
+\textbf{t\_salidas salidas.}
+Estructura que contiene: 
+\begin{itemize}
+ \item Cantidad de personas en el pasillo. 
+ El pasillo es una zona intermedia entre el aula y el grupo. En él se encuentran 
+ los alumnos con máscara esperando para poder ingresar en un grupo.
+ \item Cantidad de personas en el grupo. 
+ En el grupo los alumnos esperan ser cinco para poder ser evacuados.
+\end{itemize}
+
+\subsubsection{Caso especial}
+\textbf{t\_parametros.} 
+Estructura que contiene: 
 \begin{itemize}
  \item Identificador del socket que utilizará el pthread para comunicarse con el cliente.
  Este socket es único para cada pthread.
- \item Variable compartida el\_aula.
+ \item Variable compartida $el\_ aula$.
+ \item Variable privada $salidas$.
 \end{itemize}
 
-Es necesario tener una estructura para pasar los parámetros porque la implementación de pthreads sólo admite el pasaje de un parámetro y debe
-ser una estructura.\\
-Al crearlo utilizamos malloc para alojarlo en memoria, de no hacerlo de esta forma la variable \textquoteleft muere\textquoteright al final del $scope$ y
-el pthread estaría accediendo a posiciones inválidas (contienen basura).\\
+La implementación de pthreads sólo admite el pasaje de un parámetro y debe
+ser una estructura, por eso t\_parametros es necesaria. Al crearla utilizamos malloc para alojarla en memoria, 
+de no hacerlo de esta forma la variable \textquoteleft muere\textquoteright	 al final del $scope$ y
+el pthread estaría accediendo a posiciones inválidas (contienen basura).
 
-\subsection{Mutexes}
-%pthread_mutex_t mutex_aula;			explicar cuándo se usa c/u y por qué no hay deadlock (básicamente no hay hold & wait)
-%pthread_mutex_t mutex_rescatistas;
-%pthread_cond_t cond_hay_rescatistas;
+\subsection{Mutexes y Variables de Condición}
+%/////////////// Definicion de mutexes
+%							      para control de:
+%pthread_mutex_t mutex_posiciones[ANCHO_AULA][ALTO_AULA];	las posiciones del aula, c/u machea con una posición
+%pthread_mutex_t mutex_cantidad_de_personas;			aula-> cant de personas
+%pthread_mutex_t mutex_rescatistas;				aula-> cant rescatistas
+%pthread_mutex_t mutex_pasillo;				salidas-> cant personas pasillo - fuera del aula con máscara pero no en un grupo para salir
+%pthread_mutex_t mutex_grupo;					salidas-> cant personas grupo - esperando formar grupo de 5 para salir
 
-\subsection{Deadlock}
+%/////////////// Fin definicion de mutexes
+
+%////////////// Variables de condicion
+% pthread_cond_t cond_hay_rescatistas;
+% pthread_cond_t cond_grupo_lleno;
+% pthread_cond_t cond_estan_evacuando;
+% pthread_cond_t cond_salimos_todos;
+% ////////////// Fin variables de condicion
 
 \subsection{Implementación}
-%servidor_multi y un algorithm explicando el atendedor de boludos eee digo alumnos
+%algorithm de servidor_multi y luego la explicación de cada función, explicación del pasillo y como se retiran los grupos.
+
+\subsection{Deadlock}
+Vamos a analizar el código para demostrar que está libre de deadlocks.
+Antes de eso veremos cuáles son las condiciones que debe cumplir un sistema para tener la posibilidad de llegar a un estado de deadlock, llamadas
+condiciones de Coffman.
+%....................
+
+Libre de deadlock! ¿por que? ¿qué condicion de don Coffsy no se cumple?
+Explicar las condiciones de Cofsy (muy poco - citarlo)
+
+No hay espera circular porque imponemos un orden a como tomar los locks de las posiciones del aula. 
+Agregar grafiquito de la matriz con sus flechitas de mayor, menor o casos.
+
+Hold and wait sin espera circular: nadie que tenga el pasillo va a pedir el grupo entonces siempre se pide el grupo en algún momento se libera el pasillo.
+Nunca se da la situación de que alguien tiene el grupo y esta esperando el pasillo mientras otro tiene el pasillo mientras espera el grupo.
+Orden determinado, primero grupo, dsp pasillo, dsp aula ponele.
+Más grafiquitos, los está haciendo Dami
+
+Una variante de deadlock es livelock, algo de explicación, no pasa porq asumimos q los clientes son personas lógicas!
+
+\subsection{Paralelismo}
+%Se busca obtener el mayor grado de paralelismo, por lo tanto se debe minimizar la estructura que se bloquea en la exclusión mutua.
+El objetivo de esta implementación era maximizar el grado de paralelismo, por esta razón decidimos utilizar semáforos independientes para las posiciones
+del aula y sus atributos.
+
+En un principio nuestra solución utilizaba un unico mutex para restringir el acceso a la estructura del aula, si bien esta solución funcionaba
+no se permitian movimientos paralelos dentro del aula, aunque esas posiciones fueran totalmente distintas.
+
+Además se buscó reducir las secciones críticas lo mayor posible.
+

@@ -1,7 +1,7 @@
-# Temp files
+#temp files
 *.*~
 
-#kile / latex
+#kile latex
 *.tex.kate-swp
 *.log 
 *.out 

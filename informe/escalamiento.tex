@@ -2,6 +2,7 @@ En caso de un aumento drástico en la cantidad de alumnos el problema a tener en
 
 Un pthread es creado por cada alumno (o cliente) que se conecta al servidor. Esto implica un nuevo stack, 
 el tamaño del stack es variable. Normalmente (y lo vamos a asumir para este caso) es de 2MB.\\ 
+%TODO agregar otra solución, también se le puede cambiar el tamaño del stack a uno más chico, si es que la implementación lo permite.
 %TODO add this to bibliography
 %from man pthread_create ``On Linux/x86-32,  the  default  stack  size  for  a  new  thread  is  2 megabytes.''
 
