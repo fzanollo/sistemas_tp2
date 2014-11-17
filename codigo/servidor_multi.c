@@ -3,7 +3,7 @@
 
 #include "biblioteca.h"
 
-/* Estructura que almacena los datos de una reserva. */
+/* Estructura que almacena los datos del aula. */
 typedef struct {
 	int posiciones[ANCHO_AULA][ALTO_AULA];
 	int cantidad_de_personas;
@@ -11,6 +11,7 @@ typedef struct {
 	int rescatistas_disponibles;
 } t_aula;
 
+/* Estructura que almacena los datos de las salidas:pasillo y grupo de evacuación */
 typedef struct
 {
 	int cant_personas_pasillo;
@@ -18,40 +19,35 @@ typedef struct
 
 } t_salidas;
 
+/* Estructura que almacena los parámetros del pthread */
 typedef struct {
 	//Cosas del problema
 	int socket_fd;
 	t_aula* el_aula;
 	t_salidas* salidas;
 	//Cosas del pthread
-	int tid;
+	//int tid;
 } t_parametros;
 
+/* Definición de mutexes */
 
-/////////////// Definicion de mutexes
-
-pthread_mutex_t mutex_aula;
 pthread_mutex_t mutex_posiciones[ANCHO_AULA][ALTO_AULA];
 pthread_mutex_t mutex_cantidad_de_personas;
 pthread_mutex_t mutex_rescatistas;
 pthread_mutex_t mutex_pasillo;
 pthread_mutex_t mutex_grupo;
 
-/////////////// Fin definicion de mutexes
+/* Definición de variables de condición*/
 
-////////////// Variables de condicion
 pthread_cond_t cond_hay_rescatistas;
 pthread_cond_t cond_grupo_lleno;
 pthread_cond_t cond_estan_evacuando;
 pthread_cond_t cond_salimos_todos;
-////////////// Fin variables de condicion
 
-// crear mutex pthread mutex init(mutex, attr)
-// destruir mutex pthread mutex destroy(mutex)
-
-
+// Inicializar el aula
 void t_aula_iniciar_vacia(t_aula *un_aula)
 {
+	// Inicializar cada posición del aula
 	int i, j;
 	for(i = 0; i < ANCHO_AULA; i++)
 	{
@@ -61,52 +57,61 @@ void t_aula_iniciar_vacia(t_aula *un_aula)
 		}
 	}
 
+	// Inicializar la cantidad de personas
 	un_aula->cantidad_de_personas = 0;
 	
+	// Inicializar la cantidad de rescatistas disponibles
 	un_aula->rescatistas_disponibles = RESCATISTAS;
 }
 
+// Registrar a un nuevo alumno en el aula
 void t_aula_ingresar(t_aula *un_aula, t_persona *alumno)
 {
+	// Aumentar la cantidad de personas del aula
 	pthread_mutex_lock(&mutex_cantidad_de_personas);
-	un_aula->cantidad_de_personas++;
+		un_aula->cantidad_de_personas++;
 	pthread_mutex_unlock(&mutex_cantidad_de_personas);
 
+	// Registrar posición del alumno
 	pthread_mutex_lock(&mutex_posiciones[alumno->posicion_fila][alumno->posicion_columna]);
-	un_aula->posiciones[alumno->posicion_fila][alumno->posicion_columna]++;
+		un_aula->posiciones[alumno->posicion_fila][alumno->posicion_columna]++;
 	pthread_mutex_unlock(&mutex_posiciones[alumno->posicion_fila][alumno->posicion_columna]);
 }
 
+// Remover a un alumno del aula
 void t_aula_liberar(t_aula *un_aula, t_persona *alumno)
 {
+	// Disminuir la cantidad de personas del aula
 	pthread_mutex_lock(&mutex_cantidad_de_personas);
-	un_aula->cantidad_de_personas--;
+		un_aula->cantidad_de_personas--;
 	pthread_mutex_unlock(&mutex_cantidad_de_personas);
 }
 
+// Cerrar la conexión con el cliente
 static void terminar_servidor_de_alumno(int socket_fd, t_aula *aula, t_persona *alumno) {
 	printf(">> Se interrumpió la comunicación con una consola.\n");
-		
+	
+	// Cerrar el socket
 	close(socket_fd);
 	
+	// Remover al alumno
 	t_aula_liberar(aula, alumno);
 	exit(-1);
 }
 
+// Mover al alumno dentro del aula, si es posible. Sino, reportar que no pudo moverse
 t_comando intentar_moverse(t_aula *el_aula, t_persona *alumno, t_direccion dir)
 {
 	int fila = alumno->posicion_fila;
 	int columna = alumno->posicion_columna;
+	// Calcular nueva posición
 	alumno->salio = direccion_moverse_hacia(dir, &fila, &columna);
 
-	///char buf[STRING_MAXIMO];
-	///t_direccion_convertir_a_string(dir, buf);
-	///printf("%s intenta moverse hacia %s (%d, %d)... ", alumno->nombre, buf, fila, columna);
-	
-	
+	// Si la nueva posición está dentro del aula 
 	bool entre_limites = (fila >= 0) && (columna >= 0) &&
 	     (fila < ALTO_AULA) && (columna < ANCHO_AULA);
-	     
+	   
+	// Si la nueva posición es válida, o es la salida.
 	bool pudo_moverse = alumno->salio ||
 	    (entre_limites && el_aula->posiciones[fila][columna] < MAXIMO_POR_POSICION);
 	
@@ -130,6 +135,7 @@ t_comando intentar_moverse(t_aula *el_aula, t_persona *alumno, t_direccion dir)
 		orden_locks = 1;
 	}
 
+	// Actualizar posición si es una posición valida
 	if (pudo_moverse)
 	{
 		if (!alumno->salio)
@@ -151,32 +157,29 @@ t_comando intentar_moverse(t_aula *el_aula, t_persona *alumno, t_direccion dir)
 		}
 		pthread_mutex_unlock(&mutex_posiciones[anterior_f][anterior_c]);
 	}
-	
-	//~ if (pudo_moverse)
-		//~ printf("OK!\n");
-	//~ else
-		//~ printf("Ocupado!\n");
-
 
 	return pudo_moverse;
 }
 
+// Colocar máscara al alumno 
 void colocar_mascara(t_aula *el_aula, t_persona *alumno)
 {
 	printf("Esperando rescatista. Ya casi %s!\n", alumno->nombre);	
 	alumno->tiene_mascara = true;
 }
 
+// Interactuar con el cliente del alumno
 void * atendedor_de_alumno(void * params){
+
 
 	t_parametros * parametros = (t_parametros *) params;
 	int socket_fd = parametros->socket_fd;
-
 	t_aula * el_aula = parametros->el_aula;
 	t_salidas * salidas = parametros->salidas;
 
 
 	t_persona alumno;
+	// Inicializar la estructura del alumno
 	t_persona_inicializar(&alumno);
 
 	if (recibir_nombre_y_posicion(socket_fd, &alumno) != 0) {
@@ -187,28 +190,29 @@ void * atendedor_de_alumno(void * params){
 	printf("Atendiendo a %s en la posicion (%d, %d)\n", 
 			alumno.nombre, alumno.posicion_fila, alumno.posicion_columna);
 
+	// Registrar alumno en el aula
 	t_aula_ingresar(el_aula, &alumno);
 
 	/// Loop de espera de pedido de movimiento.
 	for(;;) {
 		t_direccion direccion;
 		
-		/// Esperamos un pedido de movimiento.
+		/// Esperar un pedido de movimiento.
 		if (recibir_direccion(socket_fd, &direccion) != 0) {
 			/* O la consola cortó la comunicación, o hubo un error. Cerramos todo. */
 			terminar_servidor_de_alumno(socket_fd, el_aula, &alumno);
 		}
 		printf("Recibi direccion de %s\n", alumno.nombre);
 		
-		/// Tratamos de movernos en nuestro modelo
+		/// Calcular nueva posición o informar que no se puede mover a esa dirección
 		bool pudo_moverse = intentar_moverse(el_aula, &alumno, direccion);
 
 		printf("%s se movio a: (%d, %d)\n", alumno.nombre, alumno.posicion_fila, alumno.posicion_columna);
 
-		/// Avisamos que ocurrio
+		/// Responderle al cliente el resultado de su acción
 		enviar_respuesta(socket_fd, pudo_moverse ? OK : OCUPADO);		
-		//printf("aca3\n");
 		
+		// Si la posición actual del alumno es la salida, proceder hacia el pasillo
 		if (alumno.salio)
 			break;
 	}
@@ -216,81 +220,85 @@ void * atendedor_de_alumno(void * params){
 
 	//Salio, hay que ver que haya rescatistas para ponerle la mascara
 	pthread_mutex_lock(&mutex_rescatistas);
-	printf("Rescatistas disponibles: %d\n", el_aula->rescatistas_disponibles); 
-	while(el_aula->rescatistas_disponibles == 0){
-		//Debe esperarlos
-		pthread_cond_wait(&cond_hay_rescatistas, &mutex_rescatistas);
-	}
-	//Hay uno disponible, se lo asigno
-	printf("%s tiene a un rescatista\n", alumno.nombre); 
-	el_aula->rescatistas_disponibles--;
+		printf("Rescatistas disponibles: %d\n", el_aula->rescatistas_disponibles); 
+		while(el_aula->rescatistas_disponibles == 0){
+			//Debe esperarlos
+			pthread_cond_wait(&cond_hay_rescatistas, &mutex_rescatistas);
+		}
+		//Hay uno disponible, se lo asigno
+		printf("%s tiene a un rescatista\n", alumno.nombre); 
+		el_aula->rescatistas_disponibles--;
 	pthread_mutex_unlock(&mutex_rescatistas);
 
+	// Colocar máscara con el rescatista asignado
 	colocar_mascara(el_aula, &alumno);
 
 	pthread_mutex_lock(&mutex_rescatistas);
-	//El rescatista ya coloco su mascarilla, puede atender a alguien mas
-	printf("%s desocupa a un rescatista\n", alumno.nombre);
-	el_aula->rescatistas_disponibles++;
-	//Avisa que hay rescatistas disponibles.
-	pthread_cond_signal(&cond_hay_rescatistas);
+		//El rescatista ya coloco su mascarilla, puede atender a alguien mas
+		printf("%s desocupa a un rescatista\n", alumno.nombre);
+		el_aula->rescatistas_disponibles++;
+		//Avisa que hay al menos un rescatista disponible
+		pthread_cond_signal(&cond_hay_rescatistas);
 	pthread_mutex_unlock(&mutex_rescatistas);
 
 	printf("%s se prepara para salir\n", alumno.nombre);
 
 	pthread_mutex_lock(&mutex_pasillo);
-	//Sale efectivamente del aula y se va al pasillo
-	t_aula_liberar(el_aula, &alumno);
-	salidas->cant_personas_pasillo++;
-	printf("%s esta en el pasillo\n", alumno.nombre);
+		//Sale efectivamente del aula y se va al pasillo
+		t_aula_liberar(el_aula, &alumno);
+		salidas->cant_personas_pasillo++;
+		printf("%s esta en el pasillo\n", alumno.nombre);
 	pthread_mutex_unlock(&mutex_pasillo);
 
 	pthread_mutex_lock(&mutex_grupo);
-	//Espera a que haya espacio en el grupo de evacuacion
-	while(salidas->cant_personas_grupo >= 5){
-		printf("%s está esperando a que evacúe el grupo\n", alumno.nombre);	
-		pthread_cond_wait(&cond_grupo_lleno, &mutex_grupo);
-	}
-	//Hay espacio para uno más
-	pthread_mutex_lock(&mutex_pasillo);
-	salidas->cant_personas_pasillo--;
-	printf("%s sale del pasillo donde quedan %d personas\n", alumno.nombre, salidas->cant_personas_pasillo);
-	printf("%s se une al grupo de %d personas a ser evacuadas\n", alumno.nombre, salidas->cant_personas_grupo);
-	salidas->cant_personas_grupo++;
-	pthread_mutex_unlock(&mutex_pasillo);
+		//Espera a que haya espacio en el grupo de evacuacion
+		while(salidas->cant_personas_grupo >= 5){
+			printf("%s está esperando a que evacúe el grupo\n", alumno.nombre);	
+			pthread_cond_wait(&cond_grupo_lleno, &mutex_grupo);
+		}
+		//Hay espacio para uno más
+		pthread_mutex_lock(&mutex_pasillo);
+			salidas->cant_personas_pasillo--;
+			printf("%s sale del pasillo donde quedan %d personas\n", alumno.nombre, salidas->cant_personas_pasillo);
+			printf("%s se une al grupo de %d personas a ser evacuadas\n", alumno.nombre, salidas->cant_personas_grupo);
+			salidas->cant_personas_grupo++;
+		pthread_mutex_unlock(&mutex_pasillo);
 
-	//Veo si hay equipo o no hay mas gente en el pasillo 
-	if(salidas->cant_personas_grupo == 5 || 
-		(salidas->cant_personas_pasillo == 0 && el_aula->cantidad_de_personas == 0)){
-		//Salgamos todos!
-		printf("%s avisa al grupo de %d personas que ya pueden a ser evacuados\n", alumno.nombre, salidas->cant_personas_grupo);
-		pthread_cond_broadcast(&cond_estan_evacuando);
-	}
-	else{
-		//Todavia no podemos salir
-		printf("%s espera junto al grupo de %d personas\n", alumno.nombre, salidas->cant_personas_grupo);
-		pthread_cond_wait(&cond_estan_evacuando, &mutex_grupo);
-	}
-	salidas->cant_personas_grupo--;
-	printf("%s fue evacuado\n", alumno.nombre);
-	//Espero a que termine de salir todo el grupo
-	if(salidas->cant_personas_grupo > 0){
-		printf("Aún quedan %d personas por ser evacuadas\n", salidas->cant_personas_grupo);
-		pthread_cond_wait(&cond_salimos_todos, &mutex_grupo);
-	}
-	else{
-		//Ya salimos todos, puede volver a ingresar gente al grupo
-		printf("Ya salimos todos, pueden volver a evacuar gente\n");
-		pthread_cond_broadcast(&cond_salimos_todos);
-		pthread_cond_broadcast(&cond_grupo_lleno);
-	}
+		//Veo si hay equipo o no hay mas gente en el pasillo 
+		if(salidas->cant_personas_grupo == 5 || 
+			(salidas->cant_personas_pasillo == 0 && el_aula->cantidad_de_personas == 0)){
+			// Hay equipo, avisar al resto del grupo que ya pueden empezar a evacuar
+			printf("%s avisa al grupo de %d personas que ya pueden a ser evacuados\n", alumno.nombre, salidas->cant_personas_grupo);
+			pthread_cond_broadcast(&cond_estan_evacuando);
+		}
+		else{
+			//Todavia no podemos salir, falta gente
+			printf("%s espera junto al grupo de %d personas\n", alumno.nombre, salidas->cant_personas_grupo);
+			pthread_cond_wait(&cond_estan_evacuando, &mutex_grupo);
+		}
+		// Evacuar efectivamente
+		salidas->cant_personas_grupo--;
+		printf("%s fue evacuado\n", alumno.nombre);
+		//Espero a que termine de salir todo el grupo
+		if(salidas->cant_personas_grupo > 0){
+			printf("Aún quedan %d personas por ser evacuadas\n", salidas->cant_personas_grupo);
+			pthread_cond_wait(&cond_salimos_todos, &mutex_grupo);
+		}
+		else{
+			//Ya salimos todos, puede volver a ingresar gente al grupo
+			printf("Ya salimos todos, pueden volver a evacuar gente\n");
+			pthread_cond_broadcast(&cond_salimos_todos);
+			pthread_cond_broadcast(&cond_grupo_lleno);
+		}
 
 	pthread_mutex_unlock(&mutex_grupo);
 
+	// Respuesta final al cliente
 	enviar_respuesta(socket_fd, LIBRE);
 	
 	printf("Listo, %s es libre!\n", alumno.nombre);
 
+	// Liberar memoria
 	free(params);
 	return NULL;
 
@@ -298,7 +306,6 @@ void * atendedor_de_alumno(void * params){
 
 int main(void)
 {
-	//signal(SIGUSR1, signal_terminar);
 	int socketfd_cliente, socket_servidor, socket_size;
 	struct sockaddr_in local, remoto;
 
@@ -331,51 +338,52 @@ int main(void)
 	socket_size = sizeof(remoto);
 
 	// Inicializacion de mutexes
-	//pthread_mutex_init(&mutex_aula, NULL);
 	pthread_mutex_init(&mutex_rescatistas, NULL);
 	pthread_mutex_init(&mutex_pasillo, NULL);
 	pthread_mutex_init(&mutex_grupo, NULL);
 	pthread_mutex_init(&mutex_cantidad_de_personas, NULL);
 
+	// Un mutex por posicion del aula
 	int f, c;
-	for(f = 0; f < ANCHO_AULA; f++)
+	for(f = 0; f < ALTO_AULA; f++)
 	{
-		for (c = 0; c < ALTO_AULA; c++)
+		for (c = 0; c < ANCHO_AULA; c++)
 		{
 			pthread_mutex_init(&mutex_posiciones[f][c], NULL);
 		}
 	}
 
-	// Variables de condicion
+	// Inicialización de variables de condición
 	pthread_cond_init(&cond_hay_rescatistas, NULL);
 	pthread_cond_init(&cond_salimos_todos, NULL);
 	pthread_cond_init(&cond_grupo_lleno, NULL);
 	pthread_cond_init(&cond_estan_evacuando, NULL);
 	
-
+	// Loop de atención del clientes
 	for(;;){		
 		if (-1 == (socketfd_cliente = 
 					accept(socket_servidor, (struct sockaddr*) &remoto, (socklen_t*) &socket_size)))
-		{			
+		{	
+			// Hubo un error de conexión con el cliente
 			printf("!! Error al aceptar conexion\n");
 		}
 		else{
-			//cant_clientes++;
+			// Se conectó un nuevo cliente
+			// Inicializar un pthread para interactuar con el cliente
 			pthread_t tid;
-			//Debemos reservar memoria para los parametros de cada pthread
-			//Sugerencia: MALLOC (el pthread se debe encargar de liberar memoria)
+			// Reservar memoria dinámica para cada pthread
+			// La función del pthread se encargará de liberar la memoria
 			t_parametros * parametros = malloc(sizeof(t_parametros));
 			
+			// Inicialización de los parámetros del pthread
 			parametros->socket_fd = socketfd_cliente;
 			parametros->el_aula = &el_aula;
-			//parametros->tid = cant_clientes;
 			parametros->salidas = &salidas; 
-			pthread_create(&tid, NULL, atendedor_de_alumno, (void *)parametros);
-			//pthread_join(tid, NULL);
 
-			//atendedor_de_alumno(socketfd_cliente, &el_aula);
+			// Crear pthread con la funcion 'atendedor_de_alumno'
+			pthread_create(&tid, NULL, atendedor_de_alumno, (void *)parametros);
 		}
-	}
+	} 
 	return 0;
 }
 
