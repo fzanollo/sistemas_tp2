@@ -43,20 +43,51 @@ Estructura que contiene:
 
 La implementación de pthreads sólo admite el pasaje de un parámetro y debe
 ser una estructura, por eso t\_parametros es necesaria. Al crearla utilizamos malloc para alojarla en memoria, 
-de no hacerlo de esta forma la variable \textquoteleft muere\textquoteright	 al final del $scope$ y
+de no hacerlo de esta forma la variable \textquoteleft muere\textquoteright al final del $scope$ y
 el pthread estaría accediendo a posiciones inválidas (contienen basura).
 
 \subsection{Mutexes y Variables de Condición}
-%/////////////// Definicion de mutexes
-%							      para control de:
-%pthread_mutex_t mutex_posiciones[ANCHO_AULA][ALTO_AULA];	las posiciones del aula, c/u machea con una posición
-%pthread_mutex_t mutex_cantidad_de_personas;			aula-> cant de personas
-%pthread_mutex_t mutex_rescatistas;				aula-> cant rescatistas
-%pthread_mutex_t mutex_pasillo;				salidas-> cant personas pasillo - fuera del aula con máscara pero no en un grupo para salir
-%pthread_mutex_t mutex_grupo;					salidas-> cant personas grupo - esperando formar grupo de 5 para salir
+Para sincronizar los procesos utilizamos:
 
-%/////////////// Fin definicion de mutexes
+\begin{itemize}
+\item Mutexes
+  \medskip
 
+  \begin{tabular}{|p{7.5cm}|p{9cm}|}
+  \hline
+  Nombre del mutex & Para control de acceso a... \\
+  \hline
+  mutex\_posiciones (matriz de tamaño ancho del aula por alto del aula) & las posiciones del aula. \\
+  \hline
+  mutex\_cantidad\_de\_personas & la cantidad de personas en el aula. \\
+  \hline
+  mutex\_rescatistas & la cantidad de rescatistas en el aula. \\
+  \hline
+  mutex\_pasillo & la cantidad de personas en el pasillo, es decir, fuera del aula (con máscara) pero no en el grupo. \\
+  \hline
+  mutex\_grupo & la cantidad de personas en el grupo, es decir, esperando formar grupo de 5 para salir. \\
+  \hline
+  \end{tabular}
+
+\item Variables de condición
+  \medskip
+
+  \begin{tabular}{|l|p{5cm}|p{7cm}|}
+  \hline
+  Nombre de la variable & Condición de bloqueo & Explicación  \\
+  \hline
+  cond\_hay\_rescatistas & Cantidad de rescatistas disponibles = 0 & Espera a que haya un rescatista libre. \\ %el_aula->rescatistas_disponibles == 0
+  \hline
+  cond\_grupo\_lleno & Cantidad de personas en el grupo >= 5 & Espera a que haya espacio en el grupo de evacuacion. \\ %salidas->cant_personas_grupo >= 5
+  \hline
+  cond\_estan\_evacuando & Cantidad de personas en el grupo $\neq$ 5 y hay más gente en el aula o en el pasillo & Espera a que sean 5 en el grupo de 
+    evacuación a menos que sea la última persona en salir. \\ %TODO: ver si esta bien la condicion de bloqueo %salidas->cant_personas_grupo == 5 || (salidas->cant_personas_pasillo == 0 && el_aula->cantidad_de_personas == 0)
+  \hline
+  cond\_salimos\_todos & Cantidad de personas en el grupo > 0 & Espera a que termine de salir todo el grupo. \\ %salidas->cant_personas_grupo > 0
+  \hline
+  \end{tabular}
+
+\end{itemize}
 %////////////// Variables de condicion
 % pthread_cond_t cond_hay_rescatistas;
 % pthread_cond_t cond_grupo_lleno;
@@ -68,10 +99,27 @@ el pthread estaría accediendo a posiciones inválidas (contienen basura).
 %algorithm de servidor_multi y luego la explicación de cada función, explicación del pasillo y como se retiran los grupos.
 
 \subsection{Deadlock}
+Un grupo de procesos están en estado de $deadlock$ si cada uno de ellos está esperando un evento que sólo otro proceso del grupo puede causar.
 Vamos a analizar el código para demostrar que está libre de deadlocks.
+
 Antes de eso veremos cuáles son las condiciones que debe cumplir un sistema para tener la posibilidad de llegar a un estado de deadlock, llamadas
-condiciones de Coffman.
-%....................
+condiciones de Coffman:
+\begin{itemize}
+ \item Exclusión mutua: cada recurso está asignado exactamente a un proceso o está disponible.
+ \item Hold-and-wait: Los procesos que tienen asignado un recurso pueden requerir otro/s recurso/s.
+ \item No-preemption: Los recursos asignados a procesos no pueden ser removidos por la fuerza.
+ \item Espera circular: Debe haber una lista de dos o más procesos, cada uno de ellos esperando un recurso que tiene el anterior.
+\end{itemize}
+
+En nuestra implementación la condición de Coffman que no se cumple es la última, por ende está libre de deadlocks.
+Entonces queremos probar que no hay espera circular:
+
+Para asegurarnos de que no haya espera circular en cuanto a las posiciones del aula lo que hicimos fue disponer un orden de bloqueos.
+%TODO: agregar gráfico o explicación del orden
+De esta forma, si dos clientes deben bloquear las posiciones 1 y 2. Ambos lo van a hacer en el mismo orden. Entonces uno de ellos... %TODO
+
+
+%....................TODO:
 
 Libre de deadlock! ¿por que? ¿qué condicion de don Coffsy no se cumple?
 Explicar las condiciones de Cofsy (muy poco - citarlo)
@@ -88,11 +136,12 @@ Una variante de deadlock es livelock, algo de explicación, no pasa porq asumimo
 
 \subsection{Paralelismo}
 %Se busca obtener el mayor grado de paralelismo, por lo tanto se debe minimizar la estructura que se bloquea en la exclusión mutua.
-El objetivo de esta implementación era maximizar el grado de paralelismo, por esta razón decidimos utilizar semáforos independientes para las posiciones
+El objetivo de esta implementación es maximizar el grado de paralelismo, por esta razón decidimos utilizar semáforos independientes para las posiciones
 del aula y sus atributos.
 
 En un principio nuestra solución utilizaba un unico mutex para restringir el acceso a la estructura del aula, si bien esta solución funcionaba
-no se permitian movimientos paralelos dentro del aula, aunque esas posiciones fueran totalmente distintas.
+no se permitian movimientos paralelos dentro del aula, aunque esas posiciones fueran totalmente distintas, lo cual quita paralelismo.
 
-Además se buscó reducir las secciones críticas lo mayor posible.
+Además se buscó reducir las secciones críticas lo mayor posible. Así, por ejemplo, mientras a un alumno le están poniendo una máscara otro puede bloquear el mutex
+de los rescatistas ya que no está siendo modificada la cantidad de ellos.
 
