@@ -3,10 +3,11 @@
 
 #kile latex
 *.tex.kate-swp
-*.log 
-*.out 
-*~ 
-*.tex.backup 
+*.log
+*.out
+*~
+*.tex.backup
+*.backup
 *.toc
 
 #C++

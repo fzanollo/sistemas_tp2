@@ -1,7 +1,24 @@
-%Explicación sobre threads
+En los sistemas operativos tradicionales, cada proceso tiene un espacio de dirección y un único hilo (o thread) de control. De hecho, esta es casi
+la definición de proceso. Sin embargo, en muchas situaciones, es deseable tener múltiples threads de control en el mismo espacio de dirección corriendo 
+quasi-paralelamente, como si fueran (casi) procesos diferentes (excepto por el espacio de direcciones compartido).
 
-%Agregar porq se llaman Pthreads y un poco más sobre cómo estan compuestos
-Para hacer posible la portabilidad de programas con threads, la IEEE definió un estandar, la librería que define estos threads es llamada \textbf{Pthreads}.
+La razón principal para utilizar estos microprocesos, llamados threads, es que en muchas aplicaciones hay multiples actividades ocurriendo al mismo tiempo.
+Algunas de ellas pueden bloquearse de vez en cuando. Al descomponer tal aplicación en multiples threads sequenciales que corren quasi-paralelamente, el 
+modelo de programación se vuelve más simple.
+
+Un segundo argumento de por qué tenerlos es que, al ser más livianos que los procesos, es más fácil (y por lo tanto más rápido) crearlos y destruirlos.
+
+La tercer razón para usarlos tiene que ver con rendimiento. Los threads no mejoran el rendimiento si todos ellos están ligados a un CPU, pero cuando
+hay una gran cantidad de CPU y dispositivos de I/O, tener threads permite a las actividades superponerse entre sí, mejorando así el rendimiento.
+
+Por último, los threads son útiles en sistemas con multiples CPUs, dónde es posible el paralelismo real.
+
+Historicamente, los proveedores de hardware implementaban su propia versión de threads. Estas implementaciones diferían sustancialmente entre sí, haciendo dificil
+para los programadores desarrollar aplicaciones portables que utilicen threads.
+%esto y algo de lo de abajo está sacado de https://computing.llnl.gov/tutorials/pthreads/#Abstract
+
+Para hacer posible la portabilidad de programas, la IEEE definió un estandar. Las implementaciones que adhieren a este estandar son referidas como
+POSIX threads o \textbf{Pthreads}. Los Pthreads están definidos como una librería del lenguaje C, conteniendo de tipos de datos y llamadas a procedimientos.
 La mayoría de los sistemas UNIX la soportan. El estandar define más de 60 funciones.\\
 Cada pthread tiene las siguientes propiedades:
 \begin{itemize}
@@ -21,5 +38,4 @@ Estos bloqueos no son mandatorios. Queda a cargo del programador asegurar que lo
 Además de los mutex, Pthreads ofrece un segundo mecanísmo de sincronización: \textbf{variables de condición}. Éstas permiten a los threads 
 bloquearse debido al incumplimiento de alguna condición. Casi siempre estos mecanismos son utilizados conjuntamente.
 
-%agregar a el señor tanembaun a la biblio
-%TODO Desc. breve problema y cómo lo pensamos, quizás un algortithm con el pseudocódigo de la idea sea más legible
+%TODO agregar a el señor tanembaun a la biblio y https://computing.llnl.gov/tutorials/pthreads/#Abstract (leer más arriba, lo use para dos o tres párrafos)
