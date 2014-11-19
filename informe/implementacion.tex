@@ -1,0 +1,182 @@
+%algorithm de servidor_multi y luego la explicación de cada función, explicación del pasillo y como se retiran los grupos.
+Código en servidor\_multi.c
+\begin{algorithmic}[1] 
+ \Procedure{t\_aula\_iniciar\_vacia}{$aula$}
+   \For{i=0 \textbf{to} ancho del aula}
+      \For{j=0 \textbf{to} alto del aula}
+	 \State{aula.posiciones[i][j] = 0}
+      \EndFor
+   \EndFor
+   \State{aula.cantidad\_de\_personas = 0}
+   \State{aula.rescatistas\_disponibles = Cantidad inicial}
+ \EndProcedure
+ \bigskip
+ 
+ 
+ \Procedure{t\_aula\_ingresar}{$aula,\ alumno$}
+   \State{LOCK(mutex\_cantidad\_de\_personas)}
+     \IndState{aula.cantidad\_de\_personas ++}
+   \State{UNLOCK(mutex\_cantidad\_de\_personas)}
+   
+   \State{LOCK(mutex\_posiciones[alumno.fila][alumno.columna])}
+     \IndState{aula.posiciones[alumno.fila][alumno.columna] ++}
+   \State{UNLOCK(mutex\_posiciones[alumno.fila][alumno.columna])}
+ \EndProcedure
+ \bigskip
+ 
+ 
+ \Procedure{t\_aula\_liberar}{$aula,\ alumno$}
+   \State{LOCK(mutex\_cantidad\_de\_personas)}
+     \IndState{aula.cantidad\_de\_personas - -}
+   \State{UNLOCK(mutex\_cantidad\_de\_personas)}
+ \EndProcedure
+ \bigskip
+ 
+ 
+ \Procedure{terminar\_servidor\_de\_alumno}{socket\_fd, aula, alumno}
+   \State{close(socket\_fd}
+   \State{t\_aula\_liberar(aula, alumno)}
+   \State{exit(-1)}
+ \EndProcedure
+ \bigskip
+ 
+ 
+ \Function{intentar\_moverse}{aula, alumno, direccion}
+   \State{Calculo la nueva\_posicion = (fila, columna)}
+   
+   \If{nueva\_posicion es la salida}
+     \State{alumno.salio = true}
+     \State{pudo\_moverse = true}
+   \EndIf
+   
+   \If{nueva\_posicion esta entre límites \textbf{\&\&} aula.posiciones[nueva\_posicion] < Máx.cant. personas}
+     \State{pudo\_moverse = true}
+   \EndIf
+   \State{vieja\_posicion = (alumno.fila, alumno.columna)}
+   
+   \If{nueva\_posicion.fila < vieja\_posicion.fila \textbf{||} (nueva\_posicion.fila == vieja\_posicion.fila \textbf{\&\&} nueva\_posicion.columna < vieja\_posicion.columna)}
+     \If{!alumno.salio}
+       \State{LOCK(mutex\_posiciones[nueva\_posicion.fila][nueva\_posicion.columna])}
+     \EndIf
+     \State{LOCK(mutex\_posiciones[vieja\_posicion.fila][vieja\_posicion.columna])}
+     \State{orden\_locks = 0}
+   \Else
+     \State{LOCK(mutex\_posiciones[vieja\_posicion.fila][vieja\_posicion.columna])}
+     \If{!alumno.salio}
+       \State{LOCK(mutex\_posiciones[nueva\_posicion.fila][nueva\_posicion.columna])}
+     \EndIf
+     \State{orden\_locks = 1}
+   \EndIf
+   
+   \If{pudo\_moverse}
+     \If{!alumno.salio}
+       \State{aula.posiciones[nueva\_posicion] ++}
+     \EndIf
+     \State{aula.posiciones[vieja\_posicion] - -}
+     \State{actualizar posicion del alumno}
+   \EndIf
+   
+   \If{orden\_locks == 0}
+     \State{UNLOCK(mutex\_posiciones[vieja\_posicion.fila][vieja\_posicion.columna])}
+     \If{!alumno.salio}
+       \State{UNLOCK(mutex\_posiciones[nueva\_posicion.fila][nueva\_posicion.columna])}
+     \EndIf
+   \Else
+     \If{!alumno.salio}
+       \State{UNLOCK(mutex\_posiciones[nueva\_posicion.fila][nueva\_posicion.columna])}
+     \EndIf
+     \State{UNLOCK(mutex\_posiciones[vieja\_posicion.fila][vieja\_posicion.columna])}
+   \EndIf
+   \State{\textbf{return} pudo\_moverse}
+ \EndFunction
+ \bigskip
+ 
+ 
+ \Procedure{colocar\_mascara}{$aula,\ alumno$}
+   \State{alumno.tiene\_mascara = true}
+ \EndProcedure
+ \bigskip
+ 
+ 
+ \Procedure{atendedor\_de\_alumno}{$socket\_fd,\ aula,\ salidas,\ alumno$}
+   \If{no se pudo recibir el nombre y la posicion}
+     \State{terminar\_servidor\_de\_alumno(socket\_fd, NULL, NULL)}
+   \EndIf
+   \State{t\_aula\_ingresar(aula, alumno)}
+   
+   \For{Ever}
+     \If{no se pudo recibir la direccion}
+       \State{terminar\_servidor\_de\_alumno(socket\_fd, aula, alumno)}
+     \EndIf
+     \State{pudo\_moverse = intentar\_moverse(aula, alumno, direccion)}
+     \State{enviar\_respuesta(socket\_fd, pudo\_moverse)}     
+     \If{alumno.salio}
+       \State{break}
+     \EndIf
+   \EndFor
+   
+   \State{LOCK(mutex\_rescatistas)}
+      \While{aula.rescatistas\_disponibles == 0}
+	 \State{COND\_WAIT(cond\_hay\_rescatistas, mutex\_rescatistas)}
+      \EndWhile
+      
+      \IndState{aula.rescatistas\_disponibles - -}
+   \State{UNLOCK(mutex\_rescatistas)}
+   
+   \State{colocar\_mascara(aula, alumno)}
+   
+   \State{LOCK(mutex\_rescatistas)}
+     \State{aula.rescatistas\_disponibles ++}
+     \State{COND\_SIGNAL(cond\_hay\_rescatistas)}
+   \State{UNLOCK(mutex\_rescatistas)}
+   
+   \State{LOCK(mutex\_pasillo)}
+     \State{t\_aula\_liberar(aula, alumno)}
+     \State{salidas.cant\_personas\_pasillo ++}
+   \State{UNLOCK(mutex\_pasillo)}
+   
+   \State{LOCK(mutex\_grupo)}
+     \While{salidas.cant\_personas\_grupo >= 5}
+	 \State{COND\_WAIT(cond\_grupo\_lleno, mutex\_grupo)}
+     \EndWhile
+     
+     \State{LOCK(mutex\_pasillo)}
+       \State{salidas.cant\_personas\_pasillo - -}
+       \State{salidas.cant\_personas\_grupo ++}
+     \State{UNLOCK(mutex\_pasillo)}
+     
+     \If{salidas.cant\_personas\_grupo == 5 \textbf{||} (salidas.cant\_personas\_pasillo == 0 \textbf{\&\&} aula.cantidad\_de\_personas == 0)}
+       \State{COND\_BROADCAST(cond\_estan\_evacuando)}
+     \Else
+       \State{COND\_WAIT(cond\_estan\_evacuando, mutex\_grupo)}
+     \EndIf
+     
+     \State{salidas.cant\_personas\_grupo - -}
+     \If{salidas.cant\_personas\_grupo > 0}
+       \State{\State{COND\_WAIT(cond\_salimos\_todos, mutex\_grupo)}}
+     \Else
+       \State{COND\_BROADCAST(cond\_salimos\_todos)}
+       \State{COND\_BROADCAST(cond\_grupo\_lleno)}
+     \EndIf
+   \State{UNLOCK(mutex\_grupo)}
+   
+   \State{enviar\_respuesta(socket\_fd, LIBRE)}
+ \EndProcedure
+ \bigskip
+ 
+ 
+ \Function{main}{void}
+   \State{Inicializar conexion con sockets y permitir 5 conexiones en espera}
+   \State{t\_aula\_iniciar\_vacia(aula)}
+   \State{Inicializar mutexes}
+   \State{Inicializar variables de condicion}
+   \For{Ever}\Comment{Loop de atencion al cliente}
+     \If{Se conecto un nuevo cliente}
+       \State{Inicializar pthread y sus parametros}
+       \State{Crear pthread con la funcion 'atendedor\_de\_alumno'}
+     \EndIf
+   \EndFor
+ \EndFunction
+ 
+\end{algorithmic}
+

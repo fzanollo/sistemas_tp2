@@ -3,7 +3,7 @@
 %Qué tipos de datos usamos para sincronizar los procesos. Por qué
 \subsection{Variables utilizadas}
 \subsubsection{Compartidas}
-\textbf{t\_aula el\_aula.}
+\textbf{t\_aula aula.}
 Estructura que contiene: 
 \begin{itemize}
  \item Una matríz de enteros donde cada posición equivale a $1\ m^{2}$ del aula.
@@ -88,15 +88,9 @@ Para sincronizar los procesos utilizamos:
   \end{tabular}
 
 \end{itemize}
-%////////////// Variables de condicion
-% pthread_cond_t cond_hay_rescatistas;
-% pthread_cond_t cond_grupo_lleno;
-% pthread_cond_t cond_estan_evacuando;
-% pthread_cond_t cond_salimos_todos;
-% ////////////// Fin variables de condicion
 
 \subsection{Implementación}
-%algorithm de servidor_multi y luego la explicación de cada función, explicación del pasillo y como se retiran los grupos.
+\input{implementacion.tex}
 
 \subsection{Deadlock}
 Un grupo de procesos están en estado de $deadlock$ si cada uno de ellos está esperando un evento que sólo otro proceso del grupo puede causar.
