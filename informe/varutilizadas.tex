@@ -1,0 +1,43 @@
+\subsubsection{Compartidas}
+\textbf{t\_aula aula.}
+Estructura que contiene: 
+\begin{itemize}
+ \item Una matríz de enteros donde cada posición equivale a $1\ m^{2}$ del aula.
+ \item Cantidad de personas dentro del aula.
+ \item Cantidad de rescatístas.
+\end{itemize}
+
+\subsubsection{Privadas}
+\textbf{t\_persona alumno.}
+Estructura que contiene: 
+\begin{itemize}
+ \item Nombre
+ \item Posición en la que se encuentra (fila y columna)
+ \item Un booleano indicando si salió y otro si tiene la máscara.
+\end{itemize}
+
+\smallskip
+\textbf{t\_salidas salidas.}
+Estructura que contiene: 
+\begin{itemize}
+ \item Cantidad de personas en el pasillo. 
+ El pasillo es una zona intermedia entre el aula y el grupo. En él se encuentran 
+ los alumnos con máscara esperando para poder ingresar en un grupo.
+ \item Cantidad de personas en el grupo. 
+ En el grupo los alumnos esperan ser cinco para poder ser evacuados.
+\end{itemize}
+
+\subsubsection{Caso especial}
+\textbf{t\_parametros.} 
+Estructura que contiene: 
+\begin{itemize}
+ \item Identificador del socket que utilizará el pthread para comunicarse con el cliente.
+ Este socket es único para cada pthread.
+ \item Variable compartida $el\_ aula$.
+ \item Variable privada $salidas$.
+\end{itemize}
+
+La implementación de pthreads sólo admite el pasaje de un parámetro y debe
+ser una estructura, por eso t\_parametros es necesaria. Al crearla utilizamos malloc para alojarla en memoria, 
+de no hacerlo de esta forma la variable \textquoteleft muere\textquoteright al final del $scope$ y
+el pthread estaría accediendo a posiciones inválidas (contienen basura).

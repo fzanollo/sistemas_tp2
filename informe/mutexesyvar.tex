@@ -1,0 +1,41 @@
+Para sincronizar los procesos utilizamos:
+
+\begin{itemize}
+\item Mutexes
+  \medskip
+
+  \begin{tabular}{|p{7.5cm}|p{9cm}|}
+  \hline
+  Nombre del mutex & Para control de acceso a... \\
+  \hline
+  mutex\_posiciones (matriz de tamaño ancho del aula por alto del aula) & las posiciones del aula. \\
+  \hline
+  mutex\_cantidad\_de\_personas & la cantidad de personas en el aula. \\
+  \hline
+  mutex\_rescatistas & la cantidad de rescatistas en el aula. \\
+  \hline
+  mutex\_pasillo & la cantidad de personas en el pasillo, es decir, fuera del aula (con máscara) pero no en el grupo. \\
+  \hline
+  mutex\_grupo & la cantidad de personas en el grupo, es decir, esperando formar grupo de 5 para salir. \\
+  \hline
+  \end{tabular}
+
+\item Variables de condición
+  \medskip
+
+  \begin{tabular}{|l|p{5cm}|p{7cm}|}
+  \hline
+  Nombre de la variable & Condición de bloqueo & Explicación  \\
+  \hline
+  cond\_hay\_rescatistas & Cantidad de rescatistas disponibles = 0 & Espera a que haya un rescatista libre. \\ %el_aula->rescatistas_disponibles == 0
+  \hline
+  cond\_grupo\_lleno & Cantidad de personas en el grupo >= 5 & Espera a que haya espacio en el grupo de evacuacion. \\ %salidas->cant_personas_grupo >= 5
+  \hline
+  cond\_estan\_evacuando & Cantidad de personas en el grupo $\neq$ 5 y hay más gente en el aula o en el pasillo & Espera a que sean 5 en el grupo de 
+    evacuación a menos que sea la última persona en salir. \\ %TODO: ver si esta bien la condicion de bloqueo %salidas->cant_personas_grupo == 5 || (salidas->cant_personas_pasillo == 0 && el_aula->cantidad_de_personas == 0)
+  \hline
+  cond\_salimos\_todos & Cantidad de personas en el grupo > 0 & Espera a que termine de salir todo el grupo. \\ %salidas->cant_personas_grupo > 0
+  \hline
+  \end{tabular}
+
+\end{itemize}

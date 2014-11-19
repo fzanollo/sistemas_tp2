@@ -1,0 +1,31 @@
+Un grupo de procesos están en estado de $deadlock$ si cada uno de ellos está esperando un evento que sólo otro proceso del grupo puede causar.
+Vamos a analizar el código para demostrar que está libre de deadlocks.
+
+Antes de eso veremos cuáles son las condiciones que debe cumplir un sistema para tener la posibilidad de llegar a un estado de deadlock, llamadas
+condiciones de Coffman:
+\begin{itemize}
+ \item Exclusión mutua: cada recurso está asignado exactamente a un proceso o está disponible.
+ \item Hold-and-wait: Los procesos que tienen asignado un recurso pueden requerir otro/s recurso/s.
+ \item No-preemption: Los recursos asignados a procesos no pueden ser removidos por la fuerza.
+ \item Espera circular: Debe haber una lista de dos o más procesos, cada uno de ellos esperando un recurso que tiene el anterior.
+\end{itemize}
+
+En nuestra implementación la condición de Coffman que no se cumple es la última, por ende está libre de deadlocks.
+Entonces queremos probar que no hay espera circular:
+
+Para asegurarnos de que no haya espera circular en cuanto a las posiciones del aula lo que hicimos fue disponer un orden de bloqueos.
+%TODO: agregar gráfico o explicación del orden
+De esta forma, si dos clientes deben bloquear las posiciones 1 y 2. Ambos lo van a hacer en el mismo orden. Entonces uno de ellos... %TODO
+
+
+%....................TODO:
+
+No hay espera circular porque imponemos un orden a como tomar los locks de las posiciones del aula. 
+Agregar grafiquito de la matriz con sus flechitas de mayor, menor o casos.
+
+Hold and wait sin espera circular: nadie que tenga el pasillo va a pedir el grupo entonces siempre se pide el grupo en algún momento se libera el pasillo.
+Nunca se da la situación de que alguien tiene el grupo y esta esperando el pasillo mientras otro tiene el pasillo mientras espera el grupo.
+Orden determinado, primero grupo, dsp pasillo, dsp aula ponele.
+Más grafiquitos, los está haciendo Dami
+
+Una variante de deadlock es livelock, algo de explicación, no pasa porq asumimos q los clientes son personas lógicas!
