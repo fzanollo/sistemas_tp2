@@ -1,17 +1,21 @@
-Código en servidor\_multi.c
+Código del archivo servidor\_multi.c
+
 \begin{algorithmic}[1] 
  \Procedure{t\_aula\_iniciar\_vacia}{$aula$}
    \For{i=0 \textbf{to} ancho del aula}
       \For{j=0 \textbf{to} alto del aula}
-	 \State{aula.posiciones[i][j] = 0}
+        \State{aula.posiciones[i][j] = 0}
       \EndFor
    \EndFor
    \State{aula.cantidad\_de\_personas = 0}
    \State{aula.rescatistas\_disponibles = Cantidad inicial}
  \EndProcedure
- \bigskip
- 
- 
+\end{algorithmic}
+\smallskip
+Inicializa un aula vacía con cierta cantidad de rescatistas.
+\bigskip
+
+\begin{algorithmic}[1]  
  \Procedure{t\_aula\_ingresar}{$aula,\ alumno$}
    \State{LOCK(mutex\_cantidad\_de\_personas)}
      \IndState{aula.cantidad\_de\_personas ++}
@@ -21,25 +25,35 @@ Código en servidor\_multi.c
      \IndState{aula.posiciones[alumno.fila][alumno.columna] ++}
    \State{UNLOCK(mutex\_posiciones[alumno.fila][alumno.columna])}
  \EndProcedure
- \bigskip
- 
- 
+\end{algorithmic}
+\smallskip
+Ingresa un alumno al aula en la posición indicada por él. Para que no haya problemas de concurrencia se piden los mutex
+que actúan sobre la cantidad de personas del aula y de la posición indicada.
+\bigskip
+
+\begin{algorithmic}[1] 
  \Procedure{t\_aula\_liberar}{$aula,\ alumno$}
    \State{LOCK(mutex\_cantidad\_de\_personas)}
      \IndState{aula.cantidad\_de\_personas - -}
    \State{UNLOCK(mutex\_cantidad\_de\_personas)}
  \EndProcedure
- \bigskip
- 
- 
+\end{algorithmic}
+\smallskip
+Retira un alumno del aula. Por la misma razón que antes se pide el mutex de la cantidad de personas. %TODO: está bien esto? no lo debería borrar tmb de la posicion en la matriz??
+\bigskip
+
+\begin{algorithmic}[1] 
  \Procedure{terminar\_servidor\_de\_alumno}{socket\_fd, aula, alumno}
    \State{close(socket\_fd}
    \State{t\_aula\_liberar(aula, alumno)}
    \State{exit(-1)}
  \EndProcedure
- \bigskip
- 
- 
+\end{algorithmic}
+\smallskip
+Termina la conexión con el cliente.
+\bigskip
+
+\begin{algorithmic}[1] 
  \Function{intentar\_moverse}{aula, alumno, direccion}
    \State{Calculo la nueva\_posicion = (fila, columna)}
    
@@ -88,22 +102,30 @@ Código en servidor\_multi.c
    \EndIf
    \State{\textbf{return} pudo\_moverse}
  \EndFunction
- \bigskip
- 
- 
+\end{algorithmic}
+\smallskip
+Intenta mover al alumno dentro del aula hacia la dirección indicada. Para esto debe tomar los mutex de la 
+posición vieja y nueva (si es que no salió), se toman en determinado orden para evitar espera circular (ver sección deadlock). %TODO: como pongo un 'link' a esa sección?
+Luego devuelve si el alumno pudo moverse o no.
+\bigskip
+
+\begin{algorithmic}[1] 
  \Procedure{colocar\_mascara}{$aula,\ alumno$}
    \State{alumno.tiene\_mascara = true}
  \EndProcedure
- \bigskip
- 
- 
+\end{algorithmic} 
+\smallskip
+Coloca la máscara en el alumno.
+\bigskip
+
+\begin{algorithmic}[1] 
  \Procedure{atendedor\_de\_alumno}{$socket\_fd,\ aula,\ salidas,\ alumno$}
    \If{no se pudo recibir el nombre y la posicion}
      \State{terminar\_servidor\_de\_alumno(socket\_fd, NULL, NULL)}
    \EndIf
    \State{t\_aula\_ingresar(aula, alumno)}
    
-   \For{Ever}
+   \For{ever}
      \If{no se pudo recibir la direccion}
        \State{terminar\_servidor\_de\_alumno(socket\_fd, aula, alumno)}
      \EndIf
@@ -114,6 +136,7 @@ Código en servidor\_multi.c
      \EndIf
    \EndFor
    
+   \Statex
    \State{LOCK(mutex\_rescatistas)}
       \While{aula.rescatistas\_disponibles == 0}
 	 \State{COND\_WAIT(cond\_hay\_rescatistas, mutex\_rescatistas)}
@@ -122,26 +145,30 @@ Código en servidor\_multi.c
       \IndState{aula.rescatistas\_disponibles - -}
    \State{UNLOCK(mutex\_rescatistas)}
    
+   \Statex
    \State{colocar\_mascara(aula, alumno)}
    
+   \Statex
    \State{LOCK(mutex\_rescatistas)}
-     \State{aula.rescatistas\_disponibles ++}
-     \State{COND\_SIGNAL(cond\_hay\_rescatistas)}
+     \IndState{aula.rescatistas\_disponibles ++}
+     \IndState{COND\_SIGNAL(cond\_hay\_rescatistas)}
    \State{UNLOCK(mutex\_rescatistas)}
    
+   \Statex
    \State{LOCK(mutex\_pasillo)}
-     \State{t\_aula\_liberar(aula, alumno)}
-     \State{salidas.cant\_personas\_pasillo ++}
+     \IndState{t\_aula\_liberar(aula, alumno)}
+     \IndState{salidas.cant\_personas\_pasillo ++}
    \State{UNLOCK(mutex\_pasillo)}
    
+   \Statex
    \State{LOCK(mutex\_grupo)}
      \While{salidas.cant\_personas\_grupo >= 5}
-	 \State{COND\_WAIT(cond\_grupo\_lleno, mutex\_grupo)}
+        \State{COND\_WAIT(cond\_grupo\_lleno, mutex\_grupo)}
      \EndWhile
      
      \State{LOCK(mutex\_pasillo)}
-       \State{salidas.cant\_personas\_pasillo - -}
-       \State{salidas.cant\_personas\_grupo ++}
+       \IndState{salidas.cant\_personas\_pasillo - -}
+       \IndState{salidas.cant\_personas\_grupo ++}
      \State{UNLOCK(mutex\_pasillo)}
      
      \If{salidas.cant\_personas\_grupo == 5 \textbf{||} (salidas.cant\_personas\_pasillo == 0 \textbf{\&\&} aula.cantidad\_de\_personas == 0)}
@@ -159,24 +186,45 @@ Código en servidor\_multi.c
      \EndIf
    \State{UNLOCK(mutex\_grupo)}
    
+   \Statex
    \State{enviar\_respuesta(socket\_fd, LIBRE)}
  \EndProcedure
- \bigskip
- 
- 
+\end{algorithmic} 
+\smallskip
+Si no se puede recibir el nombre y la posicion se supone una conexión fallida y se corta dicha conexión.
+Luego se reciben direcciones hasta que el alumno logra salir del aula. En caso de no recibir una dirección, 
+de nuevo, se supone una conexión fallida y se corta dicha conexión. \\
+
+Cuando llega a la salida queda a la espera de un rescatista. En cuanto consigue uno le es colocada la máscara y luego
+el rescatista vuelve a quedar libre. Notar que para sincronizar la variable rescatistas\_disponibles 
+es pedido el mutex antes y después de modificarla, además en vez de esperar de forma activa ($busy\ waiting$)
+utilizamos una variable de condición que despierta cuándo hay rescatistas disponibles.\\
+
+Una vez que el alumno tiene la máscara puesta, entra a un lugar entre el aula y la salida al cuál decidimos llamar 
+\textquoteleft pasillo\textquoteright. Recién entonces decimos que el alumno salió efectivamente del aula (linea 28).
+La cantidad de personas en el pasillo también está sincronizada con un mutex.\\
+
+En este momento el alumno debe esperar a que haya lugar en el grupo de evacuación. De nuevo utilizamos una variable
+de condición que despierta si esto pasa. Ahora el alumno pasa del pasillo al grupo, si son 5 o es el último en salir
+avisa a los demás que pueden evacuar. De lo contrario queda a la espera de la señal.\\
+De a uno se retiran del grupo (se descuentan de la cantidad de personas en el grupo, variable que está sincronizada).
+En cuanto todos se hayan retirado del grupo salen del edificio juntos.
+\bigskip
+
+\begin{algorithmic}[1] 
  \Function{main}{void}
    \State{Inicializar conexion con sockets y permitir 5 conexiones en espera}
    \State{t\_aula\_iniciar\_vacia(aula)}
    \State{Inicializar mutexes}
    \State{Inicializar variables de condicion}
-   \For{Ever}\Comment{Loop de atencion al cliente}
+   \For{ever}\Comment{Loop de atencion al cliente}
      \If{Se conecto un nuevo cliente}
        \State{Inicializar pthread y sus parametros}
        \State{Crear pthread con la funcion 'atendedor\_de\_alumno'}
      \EndIf
    \EndFor
  \EndFunction
- 
 \end{algorithmic}
-
-%TODO: la explicación de cada función, explicación del pasillo y como se retiran los grupos.
+\smallskip
+Crea un nuevo pthread por cada cliente que se conecta al servidor, es decir, uno por cada alumno que ingrese al aula.
+Lo crea con la función atendedor\_de\_alumno la cuál está explicada más arriba.
