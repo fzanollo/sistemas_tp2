@@ -1,10 +1,10 @@
 Código del archivo servidor\_multi.c
 
 \begin{algorithmic}[1] 
- \Procedure{t\_aula\_iniciar\_vacia}{$aula$}
+ \Procedure{t\_aula\_iniciar\_vacia}{aula}
    \For{i=0 \textbf{to} ancho del aula}
       \For{j=0 \textbf{to} alto del aula}
-        \State{aula.posiciones[i][j] = 0}
+        \State{aula.posicion[i][j] = 0}
       \EndFor
    \EndFor
    \State{aula.cantidad\_de\_personas = 0}
@@ -16,13 +16,13 @@ Inicializa un aula vacía con cierta cantidad de rescatistas.
 \bigskip
 
 \begin{algorithmic}[1]  
- \Procedure{t\_aula\_ingresar}{$aula,\ alumno$}
+ \Procedure{t\_aula\_ingresar}{aula,\ alumno}
    \State{LOCK(mutex\_cantidad\_de\_personas)}
      \IndState{aula.cantidad\_de\_personas ++}
    \State{UNLOCK(mutex\_cantidad\_de\_personas)}
    
    \State{LOCK(mutex\_posiciones[alumno.fila][alumno.columna])}
-     \IndState{aula.posiciones[alumno.fila][alumno.columna] ++}
+     \IndState{aula.posicion[alumno.fila][alumno.columna] ++}
    \State{UNLOCK(mutex\_posiciones[alumno.fila][alumno.columna])}
  \EndProcedure
 \end{algorithmic}
@@ -32,21 +32,21 @@ que actúan sobre la cantidad de personas del aula y de la posición indicada.
 \bigskip
 
 \begin{algorithmic}[1] 
- \Procedure{t\_aula\_liberar}{$aula,\ alumno$}
+ \Procedure{t\_aula\_liberar}{aula,\ alumno}
    \State{LOCK(mutex\_cantidad\_de\_personas)}
      \IndState{aula.cantidad\_de\_personas - -}
    \State{UNLOCK(mutex\_cantidad\_de\_personas)}
  \EndProcedure
 \end{algorithmic}
 \smallskip
-Retira un alumno del aula. Por la misma razón que antes se pide el mutex de la cantidad de personas. %TODO: está bien esto? no lo debería borrar tmb de la posicion en la matriz??
+Retira un alumno del aula. Por la misma razón que antes se pide el mutex de la cantidad de personas.
 \bigskip
 
 \begin{algorithmic}[1] 
  \Procedure{terminar\_servidor\_de\_alumno}{socket\_fd, aula, alumno}
-   \State{close(socket\_fd}
+   \State{close(socket\_fd)}
    \State{t\_aula\_liberar(aula, alumno)}
-   \State{exit(-1)}
+   \State{EXIT()} \Comment{Cierra el pthread.}
  \EndProcedure
 \end{algorithmic}
 \smallskip
@@ -62,55 +62,59 @@ Termina la conexión con el cliente.
      \State{pudo\_moverse = true}
    \EndIf
    
-   \If{nueva\_posicion esta entre límites \textbf{\&\&} aula.posiciones[nueva\_posicion] < Máx.cant. personas}
+   \State{LOCK(mutex\_posiciones[nueva\_posicion])}
+   \If{nueva\_posicion esta entre límites \textbf{and} aula.posicion[nueva\_posicion] < Máx.cant. personas}
      \State{pudo\_moverse = true}
    \EndIf
+   \State{UNLOCK(mutex\_posiciones[nueva\_posicion])}
+   \Statex
    \State{vieja\_posicion = (alumno.fila, alumno.columna)}
-   
-   \If{nueva\_posicion.fila < vieja\_posicion.fila \textbf{||} (nueva\_posicion.fila == vieja\_posicion.fila \textbf{\&\&} nueva\_posicion.columna < vieja\_posicion.columna)}
-     \If{!alumno.salio}
-       \State{LOCK(mutex\_posiciones[nueva\_posicion.fila][nueva\_posicion.columna])}
-     \EndIf
-     \State{LOCK(mutex\_posiciones[vieja\_posicion.fila][vieja\_posicion.columna])}
-     \State{orden\_locks = 0}
-   \Else
-     \State{LOCK(mutex\_posiciones[vieja\_posicion.fila][vieja\_posicion.columna])}
-     \If{!alumno.salio}
-       \State{LOCK(mutex\_posiciones[nueva\_posicion.fila][nueva\_posicion.columna])}
-     \EndIf
-     \State{orden\_locks = 1}
-   \EndIf
-   
+   \Statex
    \If{pudo\_moverse}
-     \If{!alumno.salio}
-       \State{aula.posiciones[nueva\_posicion] ++}
-     \EndIf
-     \State{aula.posiciones[vieja\_posicion] - -}
-     \State{actualizar posicion del alumno}
-   \EndIf
+      \If{nueva\_posicion.fila < vieja\_posicion.fila \textbf{or} (nueva\_posicion.fila == vieja\_posicion.fila\\ 
+      \hspace{30pt}\textbf{and} nueva\_posicion.columna < vieja\_posicion.columna)}
+	\If{!alumno.salio}
+	  \State{LOCK(mutex\_posiciones[nueva\_posicion.fila][nueva\_posicion.columna])}
+	\EndIf
+	\State{LOCK(mutex\_posiciones[vieja\_posicion.fila][vieja\_posicion.columna])}
+	\State{orden\_locks = 0}
+      \Else
+	\State{LOCK(mutex\_posiciones[vieja\_posicion.fila][vieja\_posicion.columna])}
+	\If{!alumno.salio}
+	  \State{LOCK(mutex\_posiciones[nueva\_posicion.fila][nueva\_posicion.columna])}
+	\EndIf
+	\State{orden\_locks = 1}
+      \EndIf
    
-   \If{orden\_locks == 0}
-     \State{UNLOCK(mutex\_posiciones[vieja\_posicion.fila][vieja\_posicion.columna])}
      \If{!alumno.salio}
-       \State{UNLOCK(mutex\_posiciones[nueva\_posicion.fila][nueva\_posicion.columna])}
+       \State{aula.posicion[nueva\_posicion] ++}
      \EndIf
-   \Else
-     \If{!alumno.salio}
-       \State{UNLOCK(mutex\_posiciones[nueva\_posicion.fila][nueva\_posicion.columna])}
-     \EndIf
-     \State{UNLOCK(mutex\_posiciones[vieja\_posicion.fila][vieja\_posicion.columna])}
+     \State{aula.posicion[vieja\_posicion] - -}
+     \State{actualizar posicion del alumno}
+      
+      \If{orden\_locks == 0}
+	\State{UNLOCK(mutex\_posiciones[vieja\_posicion.fila][vieja\_posicion.columna])}
+	\If{!alumno.salio}
+	  \State{UNLOCK(mutex\_posiciones[nueva\_posicion.fila][nueva\_posicion.columna])}
+	\EndIf
+      \Else
+	\If{!alumno.salio}
+	  \State{UNLOCK(mutex\_posiciones[nueva\_posicion.fila][nueva\_posicion.columna])}
+	\EndIf
+	\State{UNLOCK(mutex\_posiciones[vieja\_posicion.fila][vieja\_posicion.columna])}
+      \EndIf
    \EndIf
    \State{\textbf{return} pudo\_moverse}
  \EndFunction
 \end{algorithmic}
 \smallskip
 Intenta mover al alumno dentro del aula hacia la dirección indicada. Para esto debe tomar los mutex de la 
-posición vieja y nueva (si es que no salió), se toman en determinado orden para evitar espera circular (ver sección deadlock). %TODO: como pongo un 'link' a esa sección?
+posición vieja y nueva (si es que no salió), se toman en determinado orden para evitar espera circular (ver sección \ref{sec:deadlock}).
 Luego devuelve si el alumno pudo moverse o no.
 \bigskip
 
 \begin{algorithmic}[1] 
- \Procedure{colocar\_mascara}{$aula,\ alumno$}
+ \Procedure{colocar\_mascara}{aula,\ alumno}
    \State{alumno.tiene\_mascara = true}
  \EndProcedure
 \end{algorithmic} 
@@ -119,7 +123,7 @@ Coloca la máscara en el alumno.
 \bigskip
 
 \begin{algorithmic}[1] 
- \Procedure{atendedor\_de\_alumno}{$socket\_fd,\ aula,\ salidas,\ alumno$}
+ \Procedure{atendedor\_de\_alumno}{socket\_fd,\ aula,\ salidas,\ alumno}
    \If{no se pudo recibir el nombre y la posicion}
      \State{terminar\_servidor\_de\_alumno(socket\_fd, NULL, NULL)}
    \EndIf
@@ -151,8 +155,8 @@ Coloca la máscara en el alumno.
    \Statex
    \State{LOCK(mutex\_rescatistas)}
      \IndState{aula.rescatistas\_disponibles ++}
-     \IndState{COND\_SIGNAL(cond\_hay\_rescatistas)}
    \State{UNLOCK(mutex\_rescatistas)}
+   \State{COND\_SIGNAL(cond\_hay\_rescatistas)}
    
    \Statex
    \State{LOCK(mutex\_pasillo)}
@@ -171,9 +175,16 @@ Coloca la máscara en el alumno.
        \IndState{salidas.cant\_personas\_grupo ++}
      \State{UNLOCK(mutex\_pasillo)}
      
-     \If{salidas.cant\_personas\_grupo == 5 \textbf{||} (salidas.cant\_personas\_pasillo == 0 \textbf{\&\&} aula.cantidad\_de\_personas == 0)}
+     \State{LOCK(mutex\_pasillo)}
+     \State{LOCK(mutex\_cantidad\_de\_personas)}
+     \If {salidas.cant\_personas\_grupo == 5 \textbf{or} (salidas.cant\_personas\_pasillo == 0\\
+     \hspace{\algorithmicindent}\textbf{and} aula.cantidad\_de\_personas == 0)}
+       \State{UNLOCK(mutex\_cantidad\_de\_personas)}
+       \State{UNLOCK(mutex\_pasillo)}
        \State{COND\_BROADCAST(cond\_estan\_evacuando)}
      \Else
+       \State{UNLOCK(mutex\_cantidad\_de\_personas)}
+       \State{UNLOCK(mutex\_pasillo)}
        \State{COND\_WAIT(cond\_estan\_evacuando, mutex\_grupo)}
      \EndIf
      

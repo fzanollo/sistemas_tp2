@@ -39,5 +39,5 @@ Estructura que contiene:
 
 La implementación de pthreads sólo admite el pasaje de un parámetro y debe
 ser una estructura, por eso t\_parametros es necesaria. Al crearla utilizamos malloc para alojarla en memoria, 
-de no hacerlo de esta forma la variable \textquoteleft muere\textquoteright al final del $scope$ y
+de no hacerlo de esta forma la variable \textquoteleft muere\textquoteright\, al final del $scope$ y
 el pthread estaría accediendo a posiciones inválidas (contienen basura).
