@@ -13,8 +13,8 @@ except IndexError:
 	offset_nombres = 0
 
 for i in xrange(cant_clientes):
-	pos_fila = i*23 % 10
-	pos_columna = i*17 % 10
+	pos_fila = (i*23 + 1) % 10 
+	pos_columna = (i*17 + 2) % 10
 	sp.Popen(["python","pycliente.py", pokemon[offset_nombres + i], str(pos_fila), str(pos_columna)])
 
 print "Corri todo"
