@@ -31,15 +31,8 @@ Para asegurarnos de que no haya espera circular en cuanto a las posiciones del a
 
 También sucede en ciertos casos que un cliente puede poseer más de un recurso a la vez, esto es tierra fértil a que haya hold-and-wait, y se genere deadlock.
 
-\begin{figure}[H]
-	\centering
-	\includegraphics[scale=0.35]{imgs/deadlock_2.png}
-	\caption{Ejemplo de deadlock con 2 recursos}
-	\label{fig:hold_and_wait_1}
-\end{figure}
+Cuando un cliente desea acceder al grupo de evacuación debe descontarse de la cantidad de gente en el pasillo. Para ello, un cliente con el mutex del grupo debe tomar el mutex del pasillo, y esto podría causar hold-and-wait y por lo tanto deadlock, ya que un cliente podría tener el mutex del pasillo y podría requerir el mutex del grupo. Sin embargo, en nuestra implementación nunca sucede el caso en que un cliente pueda tener asignado el recurso del pasillo y quiera acceder al recurso del grupo. Para que esto suceda debe tener primero un lock sobre el grupo, para luego preguntar por el pasillo. Notar que hay veces que el recurso del pasillo puede estar tomado por otro cliente, pero éste eventualmente lo liberará.
 
-En la figura~\ref{fig:hold_and_wait_1} se ve un ejemplo de deadlock con 2 recursos que puede resultar de que un cliente con un recurso quiera acceder a otro. Sin embargo, en nuestra implementación nunca sucede el caso en que un cliente pueda tener asignado el recurso del pasillo y quiera acceder al recurso del grupo. Para que esto suceda debe tener primero un lock sobre el grupo, para luego preguntar por el pasillo. Notar que hay veces que el recurso del pasillo puede estar tomado por otro cliente, pero éste eventualmente lo liberará.
-
-Además, al momento de ingresar al grupo de evacuación, el cliente debe tomar locks en 3 recursos en simultáneo para ver si se cumplen determinadas condiciones. Sin embargo, una vez que ve si se cumplen, suelta los locks, por lo tanto, no hay deadlock.
+Además, al momento de ingresar al grupo de evacuación, el cliente debe tomar locks en 3 recursos en simultáneo para ver si se cumplen determinadas condiciones. Sin embargo, una vez que ve si se cumplen, suelta los locks, por lo tanto, no sucede hold-and-wait.
 
 Una variante de deadlock es el $livelock$, donde no necesariamente el sistema está en un estado del cual no puede avanzar, pero está en una serie de eventos que se repiten de manera cíclica. Esto puede afectar a nuestro sistema cuando un cliente rebelde no se acerca a la salida, y como el grupo de evacuación debe esperar a que haya 5 personas en el grupo o sean los últimos del aula entonces no pueden evacuar mientras este cliente no salga. Sin embargo, vamos a suponer que los clientes son personas lógicas y desean ser evacuados, por lo tanto eventualmente alcanzará la salida. Con esta suposición salvamos el riesgo de livelock.

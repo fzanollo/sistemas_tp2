@@ -2,8 +2,8 @@ En los sistemas operativos tradicionales, cada proceso tiene un espacio de direc
 la definición de proceso. Sin embargo, en muchas situaciones, es deseable tener múltiples threads de control en el mismo espacio de dirección corriendo 
 quasi-paralelamente, como si fueran (casi) procesos diferentes (excepto por el espacio de direcciones compartido).
 
-La razón principal para utilizar estos microprocesos, llamados threads, es que en muchas aplicaciones hay multiples actividades ocurriendo al mismo tiempo.
-Algunas de ellas pueden bloquearse de vez en cuando. Al descomponer tal aplicación en multiples threads sequenciales que corren quasi-paralelamente, el 
+La razón principal para utilizar estos microprocesos, llamados threads\cite{Tanen}, es que en muchas aplicaciones hay múltiples actividades ocurriendo al mismo tiempo.
+Algunas de ellas pueden bloquearse de vez en cuando. Al descomponer tal aplicación en múltiples threads secuenciales que corren quasi-paralelamente, el 
 modelo de programación se vuelve más simple.
 
 Un segundo argumento de por qué tenerlos es que, al ser más livianos que los procesos, es más fácil (y por lo tanto más rápido) crearlos y destruirlos.
@@ -11,19 +11,18 @@ Un segundo argumento de por qué tenerlos es que, al ser más livianos que los p
 La tercer razón para usarlos tiene que ver con rendimiento. Los threads no mejoran el rendimiento si todos ellos están ligados a un CPU, pero cuando
 hay una gran cantidad de CPU y dispositivos de I/O, tener threads permite a las actividades superponerse entre sí, mejorando así el rendimiento.
 
-Por último, los threads son útiles en sistemas con multiples CPUs, dónde es posible el paralelismo real.
+Por último, los threads son útiles en sistemas con múltiples CPUs, dónde es posible el paralelismo real.
 
-Historicamente, los proveedores de hardware implementaban su propia versión de threads. Estas implementaciones diferían sustancialmente entre sí, haciendo dificil
-para los programadores desarrollar aplicaciones portables que utilicen threads.
-%esto y algo de lo de abajo está sacado de https://computing.llnl.gov/tutorials/pthreads/#Abstract
+Históricamente, los proveedores de hardware implementaban su propia versión de threads. Estas implementaciones diferían sustancialmente entre sí, haciendo difícil
+para los programadores desarrollar aplicaciones portables que utilicen threads.\cite{Pthreads}
 
-Para hacer posible la portabilidad de programas, la IEEE definió un estandar. Las implementaciones que adhieren a este estandar son referidas como
+Para hacer posible la portabilidad de programas, la IEEE definió un estándar. Las implementaciones que adhieren a este estándar son referidas como
 POSIX threads o \textbf{Pthreads}. Los Pthreads están definidos como una librería del lenguaje C, conteniendo de tipos de datos y llamadas a procedimientos.
-La mayoría de los sistemas UNIX la soportan. El estandar define más de 60 funciones.\\
+La mayoría de los sistemas UNIX la soportan. El estándar define más de 60 funciones.\\
 Cada pthread tiene las siguientes propiedades:
 \begin{itemize}
  \item Identificador.
- \item Set de registros (incluído el $program\ counter$).
+ \item Set de registros (incluido el $program\ counter$).
  \item Set de atributos (que son guardados en una estructura e incluyen el tamaño del $stack$ entre otros).\\
 \end{itemize}
 
@@ -35,7 +34,7 @@ mutex sea liberado.\\
 Si múltiples threads están esperando el mismo mutex, cuando éste es desbloqueado, sólo le es permitido continuar a uno de ellos.
 Estos bloqueos no son mandatorios. Queda a cargo del programador asegurar que los threads los utilizan correctamente.\\
 
-Además de los mutex, Pthreads ofrece un segundo mecanísmo de sincronización: \textbf{variables de condición}. Éstas permiten a los threads 
+Además de los mutex, Pthreads ofrece un segundo mecanismo de sincronización: \textbf{variables de condición}. Éstas permiten a los threads 
 bloquearse debido al incumplimiento de alguna condición. Casi siempre estos mecanismos son utilizados conjuntamente.
 
 %TODO agregar a el señor tanembaun a la biblio y https://computing.llnl.gov/tutorials/pthreads/#Abstract (leer más arriba, lo use para dos o tres párrafos)

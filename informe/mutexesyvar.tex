@@ -29,7 +29,7 @@ Para sincronizar los procesos utilizamos:
   \hline
   cond\_hay\_rescatistas & Cantidad de rescatistas disponibles = 0 & Espera a que haya un rescatista libre. \\ %el_aula->rescatistas_disponibles == 0
   \hline
-  cond\_grupo\_lleno & Cantidad de personas en el grupo >= 5 & Espera a que haya espacio en el grupo de evacuacion. \\ %salidas->cant_personas_grupo >= 5
+  cond\_grupo\_lleno & Cantidad de personas en el grupo >= 5 & Espera a que haya espacio en el grupo de evacuación. \\ %salidas->cant_personas_grupo >= 5
   \hline
   cond\_estan\_evacuando & Cantidad de personas en el grupo $\neq$ 5 y hay más gente en el aula o en el pasillo & Espera a que sean 5 en el grupo de 
     evacuación a menos que sea la última persona en salir. \\ %TODO: ver si esta bien la condicion de bloqueo %salidas->cant_personas_grupo == 5 || (salidas->cant_personas_pasillo == 0 && el_aula->cantidad_de_personas == 0)

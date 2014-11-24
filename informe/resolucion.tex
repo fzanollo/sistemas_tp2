@@ -17,8 +17,8 @@
 El objetivo de esta implementación es maximizar el grado de paralelismo, por esta razón decidimos utilizar semáforos independientes para las posiciones
 del aula y sus atributos.
 
-En un principio nuestra solución utilizaba un unico mutex para restringir el acceso a la estructura del aula, si bien esta solución funcionaba
-no se permitian movimientos paralelos dentro del aula, aunque esas posiciones fueran totalmente distintas, lo cual quita paralelismo.
+En un principio nuestra solución utilizaba un único mutex para restringir el acceso a la estructura del aula, si bien esta solución funcionaba
+no se permitían movimientos paralelos dentro del aula, aunque esas posiciones fueran totalmente distintas, lo cual quita paralelismo.
 
 Además se buscó reducir las secciones críticas lo mayor posible. Así, por ejemplo, mientras a un alumno le están poniendo una máscara otro puede bloquear el mutex
 de los rescatistas ya que no está siendo modificada la cantidad de ellos.
